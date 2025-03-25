@@ -16,7 +16,7 @@
   // Dynamic global extension variable
   const ext = {
     colors: {
-      three: "#0D2E6E",
+      three: "#0000FF",
       motion: "#396FAF",
       looks: "#734EBF",
       events: "#BF8F00",
