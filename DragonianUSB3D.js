@@ -19,11 +19,212 @@ let cameraSettings = {
   maxrender: 1000
 };
 
-(async function (Scratch) {
+(function (Scratch) {
   "use strict";
 
   if (!Scratch.extensions.unsandboxed) {
     throw new Error(`"Dragonian3D" must be run unsandboxed.`);
+  }
+
+  // Dynamically import Three.js
+  async function loadThree() {
+    try {
+      const three = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js');
+      return three;
+    } catch (error) {
+      console.error("Failed to load Three.js:", error);
+      return null;
+    }
+  }
+
+  let three = null;
+  let scene = null;
+  let renderer = null;
+  let camerasObj = {};
+  let activeCamera = null;
+  let isInitialized = false;
+  let currentSprite = null; // Current active sprite for motion operations
+  let spriteObjects = {}; // Store 3D objects for sprites
+  let modelObjects = {}; // Store loaded 3D models
+
+  loadThree().then(loadedThree => {
+    if (loadedThree) {
+      three = loadedThree;
+      initialize3D();
+    } else {
+      console.error("Three.js failed to load, extension cannot initialize.");
+    }
+  });
+
+  function initialize3D() {
+    // Initialize the scene and renderer
+    scene = new three.Scene();
+    renderer = new three.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 1); // Black background by default
+    document.body.appendChild(renderer.domElement);
+
+    // Add ambient light to the scene
+    const ambientLight = new three.AmbientLight(0xffffff, 0.5);
+    scene.add(ambientLight);
+
+    // Add directional light to the scene
+    const directionalLight = new three.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(1, 1, 1);
+    scene.add(directionalLight);
+
+    // Manage multiple cameras with an object for easy access
+    camerasObj = {};
+
+    // Create the default camera
+    camerasObj.default = new three.PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+    camerasObj.default.position.set(0, 0, 5);
+
+    // Create an additional top view camera
+    camerasObj.topView = new three.OrthographicCamera(
+      window.innerWidth / -2,
+      window.innerWidth / 2,
+      window.innerHeight / 2,
+      window.innerHeight / -2,
+      0.1,
+      1000
+    );
+    camerasObj.topView.position.set(0, 10, 0);
+    camerasObj.topView.lookAt(0, 0, 0);
+
+    // Set active camera
+    activeCamera = camerasObj.default;
+    currentCamera = "default";
+
+    // Add default cameras to the cameras array for tracking
+    cameras.push("default");
+    cameras.push("topView");
+
+    // Create a default sprite (cube)
+    createDefaultSprite();
+
+    // Handle window resizing
+    window.addEventListener('resize', () => {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      renderer.setSize(width, height);
+
+      // Update perspective camera aspect ratios
+      Object.values(camerasObj).forEach((camera) => {
+        if (camera.isPerspectiveCamera) {
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+        } else if (camera.isOrthographicCamera) {
+          // Update orthographic camera frustum
+          camera.left = width / -2;
+          camera.right = width / 2;
+          camera.top = height / 2;
+          camera.bottom = height / -2;
+          camera.updateProjectionMatrix();
+        }
+      });
+    });
+
+    isInitialized = true;
+
+    // Attach to Scratch VM's BEFORE_EXECUTE event if available
+    if (Scratch.vm && Scratch.vm.runtime) {
+      Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+    }
+  }
+
+  // Create a default sprite (cube) for initial use
+  function createDefaultSprite() {
+    const geometry = new three.BoxGeometry(1, 1, 1);
+    const material = new three.MeshStandardMaterial({ color: 0x00ff00 });
+    const cube = new three.Mesh(geometry, material);
+    scene.add(cube);
+    
+    // Store the sprite
+    spriteObjects["default"] = cube;
+    currentSprite = "default";
+  }
+
+  // Function to refresh the scene - will be called before each execution cycle
+  function refreshScene() {
+    if (isInitialized && scene && renderer && activeCamera) {
+      // Update any dynamic elements in the scene here
+      
+      // Render the scene with the active camera
+      renderer.render(scene, activeCamera);
+    }
+  }
+
+  // Function to switch between cameras
+  function switchCamera(cameraName) {
+    if (camerasObj[cameraName]) {
+      activeCamera = camerasObj[cameraName];
+      currentCamera = cameraName;
+    } else {
+      console.warn(`Camera '${cameraName}' not found.`);
+    }
+  }
+
+  // Load a 3D model from URL
+  async function loadModel(modelName, modelURL) {
+    if (!three) return null;
+    
+    try {
+      // For OBJ files
+      if (modelURL.toLowerCase().endsWith('.obj')) {
+        const OBJLoader = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/OBJLoader.js');
+        const loader = new OBJLoader.OBJLoader();
+        
+        return new Promise((resolve, reject) => {
+          loader.load(
+            modelURL,
+            (object) => {
+              resolve(object);
+            },
+            (xhr) => {
+              console.log(`${modelName} ${(xhr.loaded / xhr.total * 100)}% loaded`);
+            },
+            (error) => {
+              console.error('Error loading model:', error);
+              reject(error);
+            }
+          );
+        });
+      }
+      // For GLTF/GLB files
+      else if (modelURL.toLowerCase().endsWith('.gltf') || modelURL.toLowerCase().endsWith('.glb')) {
+        const GLTFLoader = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/GLTFLoader.js');
+        const loader = new GLTFLoader.GLTFLoader();
+        
+        return new Promise((resolve, reject) => {
+          loader.load(
+            modelURL,
+            (gltf) => {
+              resolve(gltf.scene);
+            },
+            (xhr) => {
+              console.log(`${modelName} ${(xhr.loaded / xhr.total * 100)}% loaded`);
+            },
+            (error) => {
+              console.error('Error loading model:', error);
+              reject(error);
+            }
+          );
+        });
+      } else {
+        console.error('Unsupported model format. Please use .obj, .gltf, or .glb files.');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error loading model:', error);
+      return null;
+    }
   }
 
   // Global extension variables – note that we reuse the global arrays above.
@@ -37,7 +238,15 @@ let cameraSettings = {
       control: "#BF8F00"
     },
     cameras: cameras,
-    models: models
+    models: models,
+    three: three,
+    scene: scene,
+    renderer: renderer,
+    camerasObj: camerasObj,
+    activeCamera: activeCamera,
+    switchCamera: switchCamera,
+    spriteObjects: spriteObjects,
+    currentSprite: currentSprite
   };
 
   /* =======================================================================
@@ -89,10 +298,35 @@ let cameraSettings = {
         }
       };
     }
-    initializeScene() { return "in development"; }
-    toggleScene(args) { return "in development"; }
-    is3DOn() { return "in development"; }
-    existingScenes() { return JSON.stringify([]); }
+    initializeScene() { 
+      if (!isInitialized && three) {
+        initialize3D();
+        return "Scene initialized";
+      }
+      return "Scene already initialized";
+    }
+    
+    toggleScene(args) { 
+      if (isInitialized && renderer) {
+        if (args.ONOFF === 'on') {
+          renderer.domElement.style.display = 'block';
+          return "Scene turned on";
+        } else {
+          renderer.domElement.style.display = 'none';
+          return "Scene turned off";
+        }
+      }
+      return "Scene not initialized";
+    }
+    
+    is3DOn() { 
+      return isInitialized && renderer && renderer.domElement.style.display !== 'none'; 
+    }
+    
+    existingScenes() { 
+      // We only have one scene in this implementation
+      return JSON.stringify(["main"]); 
+    }
   }
 
   /* =======================================================================
@@ -260,25 +494,227 @@ let cameraSettings = {
         }
       };
     }
-    moveSteps(args) { return "in development"; }
-    setPosition(args) { return "in development"; }
-    changePosition(args) { return "in development"; }
-    setRotation(args) { return "in development"; }
-    changeRotation(args) { return "in development"; }
-    setPosMenu(args) { return "in development"; }
-    setRotMenu(args) { return "in development"; }
-    directionAround(args) { return "in development"; }
-    xPosition() { return "in development"; }
-    yPosition() { return "in development"; }
-    zPosition() { return "in development"; }
-    roll() { return "in development"; }
-    pitch() { return "in development"; }
-    yaw() { return "in development"; }
-    positionArray() { return "in development"; }
-    positionObject() { return "in development"; }
-    rotationArray() { return "in development"; }
-    rotationObject() { return "in development"; }
-    turnDegrees(args) { return "in development"; }
+    
+    moveSteps(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const steps = Number(args.STEPS);
+      const sprite = spriteObjects[currentSprite];
+      
+      // Get the direction the sprite is facing (assuming -Z is forward)
+      const direction = new three.Vector3(0, 0, -1);
+      direction.applyQuaternion(sprite.quaternion);
+      direction.multiplyScalar(steps / 10); // Scale steps for better control
+      
+      // Move the sprite in that direction
+      sprite.position.add(direction);
+      
+      return "Moved steps";
+    }
+    
+    setPosition(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+      
+      spriteObjects[currentSprite].position.set(x, y, z);
+      
+      return "Position set";
+    }
+    
+    changePosition(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+      
+      spriteObjects[currentSprite].position.x += x;
+      spriteObjects[currentSprite].position.y += y;
+      spriteObjects[currentSprite].position.z += z;
+      
+      return "Position changed";
+    }
+    
+    setRotation(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180);
+      const y = Number(args.Y) * (Math.PI / 180);
+      
+      // Set rotation using Euler angles
+      spriteObjects[currentSprite].rotation.set(p, y, r, 'YXZ');
+      
+      return "Rotation set";
+    }
+    
+    changeRotation(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180);
+      const y = Number(args.Y) * (Math.PI / 180);
+      
+      // Change rotation using Euler angles
+      spriteObjects[currentSprite].rotation.x += p;
+      spriteObjects[currentSprite].rotation.y += y;
+      spriteObjects[currentSprite].rotation.z += r;
+      
+      return "Rotation changed";
+    }
+    
+    setPosMenu(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const posType = args.POSTYPES;
+      const value = Number(args.NUMBER);
+      
+      switch (posType) {
+        case 'x':
+          spriteObjects[currentSprite].position.x = value;
+          break;
+        case 'y':
+          spriteObjects[currentSprite].position.y = value;
+          break;
+        case 'z':
+          spriteObjects[currentSprite].position.z = value;
+          break;
+      }
+      
+      return "Position set";
+    }
+    
+    setRotMenu(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const rotType = args.ROTTYPES;
+      const value = Number(args.NUMBER) * (Math.PI / 180); // Convert to radians
+      
+      switch (rotType) {
+        case 'r (roll)':
+          spriteObjects[currentSprite].rotation.z = value;
+          break;
+        case 'p (pitch)':
+          spriteObjects[currentSprite].rotation.x = value;
+          break;
+        case 'y (yaw)':
+          spriteObjects[currentSprite].rotation.y = value;
+          break;
+      }
+      
+      return "Rotation set";
+    }
+    
+    directionAround(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      
+      const rotType = args.ROTTYPES;
+      
+      switch (rotType) {
+        case 'r (roll)':
+          return (spriteObjects[currentSprite].rotation.z * 180 / Math.PI).toFixed(2);
+        case 'p (pitch)':
+          return (spriteObjects[currentSprite].rotation.x * 180 / Math.PI).toFixed(2);
+        case 'y (yaw)':
+          return (spriteObjects[currentSprite].rotation.y * 180 / Math.PI).toFixed(2);
+      }
+      
+      return 0;
+    }
+    
+    xPosition() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return spriteObjects[currentSprite].position.x.toFixed(2);
+    }
+    
+    yPosition() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return spriteObjects[currentSprite].position.y.toFixed(2);
+    }
+    
+    zPosition() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return spriteObjects[currentSprite].position.z.toFixed(2);
+    }
+    
+    roll() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return (spriteObjects[currentSprite].rotation.z * 180 / Math.PI).toFixed(2);
+    }
+    
+    pitch() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return (spriteObjects[currentSprite].rotation.x * 180 / Math.PI).toFixed(2);
+    }
+    
+    yaw() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
+      return (spriteObjects[currentSprite].rotation.y * 180 / Math.PI).toFixed(2);
+    }
+    
+    positionArray() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([0, 0, 0]);
+      
+      const pos = spriteObjects[currentSprite].position;
+      return JSON.stringify([pos.x, pos.y, pos.z]);
+    }
+    
+    positionObject() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({x: 0, y: 0, z: 0});
+      
+      const pos = spriteObjects[currentSprite].position;
+      return JSON.stringify({x: pos.x, y: pos.y, z: pos.z});
+    }
+    
+    rotationArray() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([0, 0, 0]);
+      
+      const rot = spriteObjects[currentSprite].rotation;
+      return JSON.stringify([
+        rot.z * 180 / Math.PI, // roll
+        rot.x * 180 / Math.PI, // pitch
+        rot.y * 180 / Math.PI  // yaw
+      ]);
+    }
+    
+    rotationObject() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({roll: 0, pitch: 0, yaw: 0});
+      
+      const rot = spriteObjects[currentSprite].rotation;
+      return JSON.stringify({
+        roll: rot.z * 180 / Math.PI,
+        pitch: rot.x * 180 / Math.PI,
+        yaw: rot.y * 180 / Math.PI
+      });
+    }
+    
+    turnDegrees(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const direction = args.TURNDIRS;
+      const degrees = Number(args.NUM);
+      const radians = degrees * (Math.PI / 180);
+      
+      switch (direction) {
+        case 'up':
+          spriteObjects[currentSprite].rotation.x -= radians;
+          break;
+        case 'down':
+          spriteObjects[currentSprite].rotation.x += radians;
+          break;
+        case 'left':
+          spriteObjects[currentSprite].rotation.y += radians;
+          break;
+        case 'right':
+          spriteObjects[currentSprite].rotation.y -= radians;
+          break;
+      }
+      
+      return "Turned";
+    }
   }
 
   /* =======================================================================
@@ -441,20 +877,219 @@ let cameraSettings = {
         }
       };
     }
-    setModel(args) { return "in development"; }
-    addModel(args) { return "in development"; }
-    setTextureFilter(args) { return "in development"; }
-    showFaces(args) { return "in development"; }
-    setSpriteMode(args) { return "in development"; }
-    setStretch(args) { return "in development"; }
-    changeStretch(args) { return "in development"; }
-    setStretchMenu(args) { return "in development"; }
-    changeStretchMenu(args) { return "in development"; }
-    stretchX() { return "in development"; }
-    stretchY() { return "in development"; }
-    stretchZ() { return "in development"; }
-    stretchesArray() { return JSON.stringify(models); }
-    stretchesObject() { return JSON.stringify(models); }
+    
+    async setModel(args) { 
+      if (!isInitialized) return "Scene not initialized";
+      
+      const modelName = args.MODEL;
+      if (modelName === "none" || !modelObjects[modelName]) {
+        return "Model not found";
+      }
+      
+      // Remove current sprite
+      if (spriteObjects[currentSprite]) {
+        scene.remove(spriteObjects[currentSprite]);
+      }
+      
+      // Clone the model and add it to the scene
+      const modelClone = modelObjects[modelName].clone();
+      scene.add(modelClone);
+      
+      // Update current sprite
+      spriteObjects[currentSprite] = modelClone;
+      
+      return "Model set";
+    }
+    
+    async addModel(args) { 
+      if (!isInitialized) return "Scene not initialized";
+      
+      const modelName = args.MODELNAME;
+      const modelURL = args.MODELURL;
+      
+      try {
+        const model = await loadModel(modelName, modelURL);
+        
+        if (model) {
+          // Store the model
+          modelObjects[modelName] = model;
+          
+          // Add to models array for menu
+          if (!models.includes(modelName)) {
+            models.push(modelName);
+          }
+          
+          return "Model added";
+        } else {
+          return "Failed to load model";
+        }
+      } catch (error) {
+        console.error("Error adding model:", error);
+        return "Error loading model";
+      }
+    }
+    
+    existingModels() { 
+      return JSON.stringify(models);
+    }
+    
+    setTextureFilter(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const filter = args.TEXTUREFILTER;
+      const sprite = spriteObjects[currentSprite];
+      
+      // Apply texture filter to all materials in the sprite
+      sprite.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          
+          materials.forEach(material => {
+            if (material.map) {
+              material.map.minFilter = filter === 'nearest' ? three.NearestFilter : three.LinearFilter;
+              material.map.magFilter = filter === 'nearest' ? three.NearestFilter : three.LinearFilter;
+              material.map.needsUpdate = true;
+            }
+          });
+        }
+      });
+      
+      return "Texture filter set";
+    }
+    
+    showFaces(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const faces = args.SHOWFACES;
+      const sprite = spriteObjects[currentSprite];
+      
+      // Apply face culling to all materials in the sprite
+      sprite.traverse((child) => {
+        if (child.isMesh && child.material) {
+          const materials = Array.isArray(child.material) ? child.material : [child.material];
+          
+          materials.forEach(material => {
+            switch (faces) {
+              case 'both':
+                material.side = three.DoubleSide;
+                break;
+              case 'front':
+                material.side = three.FrontSide;
+                break;
+              case 'back':
+                material.side = three.BackSide;
+                break;
+            }
+            material.needsUpdate = true;
+          });
+        }
+      });
+      
+      return "Face culling set";
+    }
+    
+    setSpriteMode(args) { 
+      // This would require more complex implementation to switch between 2D and 3D modes
+      // For now, we'll just return a message
+      return "Sprite mode setting in development";
+    }
+    
+    setStretch(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+      
+      spriteObjects[currentSprite].scale.set(x, y, z);
+      
+      return "Stretch set";
+    }
+    
+    changeStretch(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+      
+      spriteObjects[currentSprite].scale.x += x;
+      spriteObjects[currentSprite].scale.y += y;
+      spriteObjects[currentSprite].scale.z += z;
+      
+      return "Stretch changed";
+    }
+    
+    setStretchMenu(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const posType = args.POSTYPES;
+      const value = Number(args.NUMBER);
+      
+      switch (posType) {
+        case 'x':
+          spriteObjects[currentSprite].scale.x = value;
+          break;
+        case 'y':
+          spriteObjects[currentSprite].scale.y = value;
+          break;
+        case 'z':
+          spriteObjects[currentSprite].scale.z = value;
+          break;
+      }
+      
+      return "Stretch set";
+    }
+    
+    changeStretchMenu(args) { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
+      
+      const posType = args.POSTYPES;
+      const value = Number(args.NUMBER);
+      
+      switch (posType) {
+        case 'x':
+          spriteObjects[currentSprite].scale.x += value;
+          break;
+        case 'y':
+          spriteObjects[currentSprite].scale.y += value;
+          break;
+        case 'z':
+          spriteObjects[currentSprite].scale.z += value;
+          break;
+      }
+      
+      return "Stretch changed";
+    }
+    
+    stretchX() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
+      return spriteObjects[currentSprite].scale.x.toFixed(2);
+    }
+    
+    stretchY() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
+      return spriteObjects[currentSprite].scale.y.toFixed(2);
+    }
+    
+    stretchZ() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
+      return spriteObjects[currentSprite].scale.z.toFixed(2);
+    }
+    
+    stretchesArray() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([1, 1, 1]);
+      
+      const scale = spriteObjects[currentSprite].scale;
+      return JSON.stringify([scale.x, scale.y, scale.z]);
+    }
+    
+    stretchesObject() { 
+      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({x: 1, y: 1, z: 1});
+      
+      const scale = spriteObjects[currentSprite].scale;
+      return JSON.stringify({x: scale.x, y: scale.y, z: scale.z});
+    }
   }
 
   /* =======================================================================
@@ -477,7 +1112,7 @@ let cameraSettings = {
         ]
       };
     }
-    temp() { return "in development"; }
+    temp() { return "Events in development"; }
   }
 
   /* =======================================================================
@@ -500,7 +1135,7 @@ let cameraSettings = {
         ]
       };
     }
-    temp() { return "in development"; }
+    temp() { return "Control in development"; }
   }
 
   /* =======================================================================
@@ -758,14 +1393,6 @@ let cameraSettings = {
             }
           },
           {
-            opcode: 'focusCamera',
-            blockType: Scratch.BlockType.COMMAND,
-            text: 'focus on camera [CAMERA]',
-            arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
-          },
-          {
             opcode: 'setCameraVis',
             blockType: Scratch.BlockType.COMMAND,
             text: 'set camera [CAMVIS] to [NUMBER]',
@@ -820,56 +1447,371 @@ let cameraSettings = {
         }
       };
     }
-    createCamera(args) { 
-      cameras.push(args.CAMERA);
-      return "in development"; 
+    createCamera(args) {
+      // Create a new camera in the camerasObj
+      const cameraName = args.CAMERA;
+      if (!camerasObj[cameraName]) {
+        // Create a new perspective camera with default settings
+        camerasObj[cameraName] = new three.PerspectiveCamera(
+          cameraSettings.FOV,
+          window.innerWidth / window.innerHeight,
+          cameraSettings.minrender,
+          cameraSettings.maxrender
+        );
+        camerasObj[cameraName].position.set(0, 0, 5);
+        // Add to the cameras array for menu tracking
+        cameras.push(cameraName);
+      }
+      return "Camera created";
     }
-    deleteCamera(args) { 
-      cameras = cameras.filter(c => c !== args.CAMERA);
-      return "in development"; 
+
+    deleteCamera(args) {
+      const cameraName = args.CAMERA;
+      // Don't delete the current camera if it's active
+      if (cameraName === "current" || activeCamera === camerasObj[cameraName]) {
+        return "Cannot delete active camera";
+      }
+
+      if (camerasObj[cameraName]) {
+        // Remove from camerasObj
+        delete camerasObj[cameraName];
+        // Remove from cameras array
+        cameras = cameras.filter(c => c !== cameraName);
+      }
+      return "Camera deleted";
     }
-    moveCameraSteps(args) { return "in development"; }
-    setCameraPosition(args) { return "in development"; }
-    changeCameraPosition(args) { return "in development"; }
-    setCameraRotation(args) { return "in development"; }
-    changeCameraRotation(args) { return "in development"; }
-    setCameraPosMenu(args) { return "in development"; }
-    setCameraRotMenu(args) { return "in development"; }
-    cameraDirectionAround(args) { return "in development"; }
-    cameraXPosition(args) { return "in development"; }
-    cameraYPosition(args) { return "in development"; }
-    cameraZPosition(args) { return "in development"; }
-    cameraRoll(args) { return "in development"; }
-    cameraPitch(args) { return "in development"; }
-    cameraYaw(args) { return "in development"; }
-    cameraPositionArray(args) { return "in development"; }
-    cameraPositionObject(args) { return "in development"; }
-    cameraRotationArray(args) { return "in development"; }
-    cameraRotationObject(args) { return "in development"; }
-    bindCamera(args) { return "in development"; }
-    unbindCamera(args) { return "in development"; }
-    bindedSprite(args) { return "in development"; }
-    existingCameras() { return JSON.stringify(cameras); }
-    focusCamera(args) { return "in development"; }
+
+    focusCamera(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        // Switch to this camera
+        switchCamera(cameraName);
+        activeCamera = camerasObj[cameraName];
+        currentCamera = cameraName;
+        return "Camera focused";
+      }
+      return "Camera not found";
+    }
+
+    moveCameraSteps(args) {
+      const cameraName = args.CAMERA;
+      const steps = Number(args.STEPS);
+
+      if (camerasObj[cameraName]) {
+        const camera = camerasObj[cameraName];
+        // Move camera forward in its current direction
+        const direction = new three.Vector3(0, 0, -1);
+        direction.applyQuaternion(camera.quaternion);
+        direction.multiplyScalar(steps / 10); // Scale steps for better control
+        camera.position.add(direction);
+        return "Camera moved";
+      }
+      return "Camera not found";
+    }
+
+    setCameraPosition(args) {
+      const cameraName = args.CAMERA;
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+
+      if (camerasObj[cameraName]) {
+        camerasObj[cameraName].position.set(x, y, z);
+        return "Camera position set";
+      }
+      return "Camera not found";
+    }
+
+    changeCameraPosition(args) {
+      const cameraName = args.CAMERA;
+      const x = Number(args.X);
+      const y = Number(args.Y);
+      const z = Number(args.Z);
+
+      if (camerasObj[cameraName]) {
+        camerasObj[cameraName].position.x += x;
+        camerasObj[cameraName].position.y += y;
+        camerasObj[cameraName].position.z += z;
+        return "Camera position changed";
+      }
+      return "Camera not found";
+    }
+
+    setCameraRotation(args) {
+      const cameraName = args.CAMERA;
+      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180);
+      const y = Number(args.Y) * (Math.PI / 180);
+
+      if (camerasObj[cameraName]) {
+        // Set rotation using Euler angles
+        camerasObj[cameraName].rotation.set(p, y, r, 'YXZ');
+        return "Camera rotation set";
+      }
+      return "Camera not found";
+    }
+
+    changeCameraRotation(args) {
+      const cameraName = args.CAMERA;
+      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180);
+      const y = Number(args.Y) * (Math.PI / 180);
+
+      if (camerasObj[cameraName]) {
+        // Change rotation using Euler angles
+        camerasObj[cameraName].rotation.x += p;
+        camerasObj[cameraName].rotation.y += y;
+        camerasObj[cameraName].rotation.z += r;
+        return "Camera rotation changed";
+      }
+      return "Camera not found";
+    }
+
+    setCameraPosMenu(args) {
+      const cameraName = args.CAMERA;
+      const posType = args.POSTYPES;
+      const value = Number(args.NUMBER);
+
+      if (camerasObj[cameraName]) {
+        switch (posType) {
+          case 'x':
+            camerasObj[cameraName].position.x = value;
+            break;
+          case 'y':
+            camerasObj[cameraName].position.y = value;
+            break;
+          case 'z':
+            camerasObj[cameraName].position.z = value;
+            break;
+        }
+        return "Camera position set";
+      }
+      return "Camera not found";
+    }
+
+    setCameraRotMenu(args) {
+      const cameraName = args.CAMERA;
+      const rotType = args.ROTTYPES;
+      const value = Number(args.NUMBER) * (Math.PI / 180); // Convert to radians
+
+      if (camerasObj[cameraName]) {
+        switch (rotType) {
+          case 'r (roll)':
+            camerasObj[cameraName].rotation.z = value;
+            break;
+          case 'p (pitch)':
+            camerasObj[cameraName].rotation.x = value;
+            break;
+          case 'y (yaw)':
+            camerasObj[cameraName].rotation.y = value;
+            break;
+        }
+        return "Camera rotation set";
+      }
+      return "Camera not found";
+    }
+
+    cameraDirectionAround(args) {
+      const cameraName = args.CAMERA;
+      const rotType = args.ROTTYPES;
+
+      if (camerasObj[cameraName]) {
+        switch (rotType) {
+          case 'r (roll)':
+            return (camerasObj[cameraName].rotation.z * 180 / Math.PI).toFixed(2);
+          case 'p (pitch)':
+            return (camerasObj[cameraName].rotation.x * 180 / Math.PI).toFixed(2);
+          case 'y (yaw)':
+            return (camerasObj[cameraName].rotation.y * 180 / Math.PI).toFixed(2);
+        }
+      }
+      return 0;
+    }
+
+    cameraXPosition(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return camerasObj[cameraName].position.x.toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraYPosition(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return camerasObj[cameraName].position.y.toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraZPosition(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return camerasObj[cameraName].position.z.toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraRoll(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return (camerasObj[cameraName].rotation.z * 180 / Math.PI).toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraPitch(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return (camerasObj[cameraName].rotation.x * 180 / Math.PI).toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraYaw(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        return (camerasObj[cameraName].rotation.y * 180 / Math.PI).toFixed(2);
+      }
+      return 0;
+    }
+
+    cameraPositionArray(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        const pos = camerasObj[cameraName].position;
+        return JSON.stringify([pos.x, pos.y, pos.z]);
+      }
+      return JSON.stringify([0, 0, 0]);
+    }
+
+    cameraPositionObject(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        const pos = camerasObj[cameraName].position;
+        return JSON.stringify({ x: pos.x, y: pos.y, z: pos.z });
+      }
+      return JSON.stringify({ x: 0, y: 0, z: 0 });
+    }
+
+    cameraRotationArray(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        const rot = camerasObj[cameraName].rotation;
+        // Convert to degrees for easier understanding
+        return JSON.stringify([
+          rot.z * 180 / Math.PI, // roll
+          rot.x * 180 / Math.PI, // pitch
+          rot.y * 180 / Math.PI  // yaw
+        ]);
+      }
+      return JSON.stringify([0, 0, 0]);
+    }
+
+    cameraRotationObject(args) {
+      const cameraName = args.CAMERA;
+      if (camerasObj[cameraName]) {
+        const rot = camerasObj[cameraName].rotation;
+        // Convert to degrees for easier understanding
+        return JSON.stringify({
+          roll: rot.z * 180 / Math.PI,
+          pitch: rot.x * 180 / Math.PI,
+          yaw: rot.y * 180 / Math.PI
+        });
+      }
+      return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 });
+    }
+
+    // Store camera-sprite bindings
+    #cameraBoundSprites = {};
+
+    bindCamera(args) {
+      const cameraName = args.CAMERA;
+      const spriteName = args.SPRITE;
+      
+      if (!camerasObj[cameraName]) {
+        return "Camera not found";
+      }
+      
+      if (!spriteObjects[spriteName]) {
+        return "Sprite not found";
+      }
+      
+      // Store the binding
+      this.#cameraBoundSprites[cameraName] = spriteName;
+      
+      // Position the camera relative to the sprite
+      const sprite = spriteObjects[spriteName];
+      const camera = camerasObj[cameraName];
+      
+      // Position the camera behind and slightly above the sprite
+      camera.position.set(
+        sprite.position.x,
+        sprite.position.y + 2,
+        sprite.position.z + 5
+      );
+      
+      // Look at the sprite
+      camera.lookAt(sprite.position);
+      
+      return "Camera bound to sprite";
+    }
+
+    unbindCamera(args) {
+      const cameraName = args.CAMERA;
+      
+      if (this.#cameraBoundSprites[cameraName]) {
+        delete this.#cameraBoundSprites[cameraName];
+        return "Camera unbound";
+      }
+      
+      return "Camera not bound";
+    }
+
+    bindedSprite(args) {
+      const cameraName = args.CAMERA;
+      return this.#cameraBoundSprites[cameraName] || "none";
+    }
+
+    existingCameras() {
+      return JSON.stringify(cameras);
+    }
+
     setCameraVis(args) {
       let visType = args.CAMVIS;
       let value = Number(args.NUMBER);
+
       switch (visType) {
         case 'FOV':
           cameraSettings.FOV = value;
+          // Update all perspective cameras
+          Object.values(camerasObj).forEach(camera => {
+            if (camera.isPerspectiveCamera) {
+              camera.fov = value;
+              camera.updateProjectionMatrix();
+            }
+          });
           break;
         case 'minrender':
           cameraSettings.minrender = value;
+          // Update all cameras
+          Object.values(camerasObj).forEach(camera => {
+            camera.near = value;
+            camera.updateProjectionMatrix();
+          });
           break;
         case 'maxrender':
           cameraSettings.maxrender = value;
-          break;
-        default:
-          cameraSettings.FOV = value;
+          // Update all cameras
+          Object.values(camerasObj).forEach(camera => {
+            camera.far = value;
+            camera.updateProjectionMatrix();
+          });
           break;
       }
-      return "in development";
+      return "Camera settings updated";
     }
+
     getCameraVis(args) {
       let visType = args.CAMVIS;
       switch (visType) {
@@ -896,5 +1838,20 @@ let cameraSettings = {
   Scratch.extensions.register(new ThreeEvents());
   Scratch.extensions.register(new ThreeControl());
   Scratch.extensions.register(new ThreeCamera());
+
+  // Attach to Scratch VM's BEFORE_EXECUTE event if available
+  if (Scratch.vm && Scratch.vm.runtime) {
+    Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+    console.log("Attached refreshScene to BEFORE_EXECUTE event");
+  } else {
+    // If VM isn't available immediately, try again when the extension is first used
+    const checkForVM = setInterval(() => {
+      if (Scratch.vm && Scratch.vm.runtime) {
+        Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+        console.log("Attached refreshScene to BEFORE_EXECUTE event (delayed)");
+        clearInterval(checkForVM);
+      }
+    }, 1000);
+  }
 
 })(Scratch);
