@@ -127,7 +127,7 @@ let cameraSettings = {
     directionalLight.position.set(1, 1, 1);
     scene.add(directionalLight);
 
-    // Manage multiple cameras with an object for easy access
+    // Manage multiple cameras with an object for ez access
     camerasObj = {};
 
     // Create the default camera
