@@ -47,6 +47,62 @@ let cameraSettings = {
   let spriteObjects = {}; // Store 3D objects for sprites
   let modelObjects = {}; // Store loaded 3D models
 
+  // Get Scratch VM and renderer
+  const vm = Scratch.vm;
+  const scratchRenderer = vm.runtime.renderer;
+
+  // Create a custom skin class for rendering the 3D scene to Scratch
+  class ThreeDSkin extends scratchRenderer.exports.Skin {
+    constructor(id, renderer) {
+      super(id, renderer);
+      const gl = renderer.gl;
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      this._texture = texture;
+      this._rotationCenter = [240, 180];
+      this._size = [480, 360];
+    }
+    
+    dispose() {
+      if (this._texture) {
+        this._renderer.gl.deleteTexture(this._texture);
+        this._texture = null;
+      }
+      super.dispose();
+    }
+    
+    set size(value) {
+      this._size = value;
+      this._rotationCenter = [value[0] / 2, value[1] / 2];
+    }
+    
+    get size() {
+      return this._size;
+    }
+    
+    getTexture(scale) {
+      return this._texture || super.getTexture(scale);
+    }
+    
+    setContent(textureData) {
+      const gl = this._renderer.gl;
+      gl.bindTexture(gl.TEXTURE_2D, this._texture);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        textureData
+      );
+      this.emitWasAltered();
+    }
+  }
+
   loadThree().then(loadedThree => {
     if (loadedThree) {
       three = loadedThree;
@@ -60,10 +116,9 @@ let cameraSettings = {
     // Initialize the scene and renderer
     scene = new three.Scene();
     renderer = new three.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 1); // Black background by default
-    document.body.appendChild(renderer.domElement);
-
+    renderer.setSize(vm.runtime.stageWidth || 480, vm.runtime.stageHeight || 360);
+    renderer.setClearColor(0x000000, 0); // Transparent background
+    
     // Add ambient light to the scene
     const ambientLight = new three.AmbientLight(0xffffff, 0.5);
     scene.add(ambientLight);
@@ -78,23 +133,24 @@ let cameraSettings = {
 
     // Create the default camera
     camerasObj.default = new three.PerspectiveCamera(
-      75,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      1000
+      cameraSettings.FOV,
+      (vm.runtime.stageWidth || 480) / (vm.runtime.stageHeight || 360),
+      cameraSettings.minrender,
+      cameraSettings.maxrender
     );
-    camerasObj.default.position.set(0, 0, 5);
+    camerasObj.default.position.set(0, 0, 200);
+    camerasObj.default.lookAt(0, 0, 0);
 
     // Create an additional top view camera
     camerasObj.topView = new three.OrthographicCamera(
-      window.innerWidth / -2,
-      window.innerWidth / 2,
-      window.innerHeight / 2,
-      window.innerHeight / -2,
+      (vm.runtime.stageWidth || 480) / -2,
+      (vm.runtime.stageWidth || 480) / 2,
+      (vm.runtime.stageHeight || 360) / 2,
+      (vm.runtime.stageHeight || 360) / -2,
       0.1,
       1000
     );
-    camerasObj.topView.position.set(0, 10, 0);
+    camerasObj.topView.position.set(0, 200, 0);
     camerasObj.topView.lookAt(0, 0, 0);
 
     // Set active camera
@@ -108,10 +164,13 @@ let cameraSettings = {
     // Create a default sprite (cube)
     createDefaultSprite();
 
+    // Create a skin and drawable for the 3D scene in Scratch
+    createScratchDrawable();
+
     // Handle window resizing
     window.addEventListener('resize', () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      const width = vm.runtime.stageWidth || 480;
+      const height = vm.runtime.stageHeight || 360;
 
       renderer.setSize(width, height);
 
@@ -134,14 +193,52 @@ let cameraSettings = {
     isInitialized = true;
 
     // Attach to Scratch VM's BEFORE_EXECUTE event if available
-    if (Scratch.vm && Scratch.vm.runtime) {
-      Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+    if (vm.runtime) {
+      vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+      console.log("Attached refreshScene to BEFORE_EXECUTE event");
     }
+  }
+
+  // Create a Scratch drawable for the 3D scene
+  let threeSkinId = null;
+  let threeDrawableId = null;
+  let threeSkin = null;
+
+  function createScratchDrawable() {
+    // Create a skin for the 3D scene
+    threeSkinId = scratchRenderer._nextSkinId++;
+    threeSkin = new ThreeDSkin(threeSkinId, scratchRenderer);
+    scratchRenderer._allSkins[threeSkinId] = threeSkin;
+    
+    // Create a drawable for the 3D scene
+    threeDrawableId = scratchRenderer.createDrawable('pen');
+    scratchRenderer.updateDrawableSkinId(threeDrawableId, threeSkinId);
+    
+    // Set the drawable to be always visible and on top
+    scratchRenderer.updateDrawableVisible(threeDrawableId, true);
+    scratchRenderer.updateDrawableEffect(threeDrawableId, 'ghost', 0);
+    
+    // Position the drawable to cover the entire stage
+    scratchRenderer.updateDrawablePosition(threeDrawableId, [0, 0]);
+    scratchRenderer.updateDrawableScale(threeDrawableId, [100, 100]);
+    
+    // Make sure the 3D scene is rendered on top of everything
+    vm.runtime.on('BEFORE_DRAW', () => {
+      if (isInitialized) {
+        // Render the 3D scene
+        renderer.render(scene, activeCamera);
+        
+        // Update the Scratch skin with the rendered 3D scene
+        if (threeSkin) {
+          threeSkin.setContent(renderer.domElement);
+        }
+      }
+    });
   }
 
   // Create a default sprite (cube) for initial use
   function createDefaultSprite() {
-    const geometry = new three.BoxGeometry(1, 1, 1);
+    const geometry = new three.BoxGeometry(50, 50, 50);
     const material = new three.MeshStandardMaterial({ color: 0x00ff00 });
     const cube = new three.Mesh(geometry, material);
     scene.add(cube);
@@ -158,6 +255,11 @@ let cameraSettings = {
       
       // Render the scene with the active camera
       renderer.render(scene, activeCamera);
+      
+      // Update the Scratch skin with the rendered 3D scene
+      if (threeSkin) {
+        threeSkin.setContent(renderer.domElement);
+      }
     }
   }
 
@@ -309,10 +411,14 @@ let cameraSettings = {
     toggleScene(args) { 
       if (isInitialized && renderer) {
         if (args.ONOFF === 'on') {
-          renderer.domElement.style.display = 'block';
+          if (threeDrawableId) {
+            scratchRenderer.updateDrawableVisible(threeDrawableId, true);
+          }
           return "Scene turned on";
         } else {
-          renderer.domElement.style.display = 'none';
+          if (threeDrawableId) {
+            scratchRenderer.updateDrawableVisible(threeDrawableId, false);
+          }
           return "Scene turned off";
         }
       }
@@ -320,7 +426,8 @@ let cameraSettings = {
     }
     
     is3DOn() { 
-      return isInitialized && renderer && renderer.domElement.style.display !== 'none'; 
+      return isInitialized && threeDrawableId && 
+             scratchRenderer._allDrawables[threeDrawableId].visible;
     }
     
     existingScenes() { 
@@ -509,6 +616,7 @@ let cameraSettings = {
       // Move the sprite in that direction
       sprite.position.add(direction);
       
+      refreshScene();
       return "Moved steps";
     }
     
@@ -521,6 +629,7 @@ let cameraSettings = {
       
       spriteObjects[currentSprite].position.set(x, y, z);
       
+      refreshScene();
       return "Position set";
     }
     
@@ -535,6 +644,7 @@ let cameraSettings = {
       spriteObjects[currentSprite].position.y += y;
       spriteObjects[currentSprite].position.z += z;
       
+      refreshScene();
       return "Position changed";
     }
     
@@ -548,6 +658,7 @@ let cameraSettings = {
       // Set rotation using Euler angles
       spriteObjects[currentSprite].rotation.set(p, y, r, 'YXZ');
       
+      refreshScene();
       return "Rotation set";
     }
     
@@ -563,6 +674,7 @@ let cameraSettings = {
       spriteObjects[currentSprite].rotation.y += y;
       spriteObjects[currentSprite].rotation.z += r;
       
+      refreshScene();
       return "Rotation changed";
     }
     
@@ -584,6 +696,7 @@ let cameraSettings = {
           break;
       }
       
+      refreshScene();
       return "Position set";
     }
     
@@ -605,6 +718,7 @@ let cameraSettings = {
           break;
       }
       
+      refreshScene();
       return "Rotation set";
     }
     
@@ -694,11 +808,11 @@ let cameraSettings = {
     turnDegrees(args) { 
       if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
       
-      const direction = args.TURNDIRS;
+      const turnDirection = args.TURNDIRS;
       const degrees = Number(args.NUM);
       const radians = degrees * (Math.PI / 180);
       
-      switch (direction) {
+      switch (turnDirection) {
         case 'up':
           spriteObjects[currentSprite].rotation.x -= radians;
           break;
@@ -713,6 +827,7 @@ let cameraSettings = {
           break;
       }
       
+      refreshScene();
       return "Turned";
     }
   }
@@ -898,6 +1013,7 @@ let cameraSettings = {
       // Update current sprite
       spriteObjects[currentSprite] = modelClone;
       
+      refreshScene();
       return "Model set";
     }
     
@@ -954,6 +1070,7 @@ let cameraSettings = {
         }
       });
       
+      refreshScene();
       return "Texture filter set";
     }
     
@@ -985,6 +1102,7 @@ let cameraSettings = {
         }
       });
       
+      refreshScene();
       return "Face culling set";
     }
     
@@ -1003,6 +1121,7 @@ let cameraSettings = {
       
       spriteObjects[currentSprite].scale.set(x, y, z);
       
+      refreshScene();
       return "Stretch set";
     }
     
@@ -1017,6 +1136,7 @@ let cameraSettings = {
       spriteObjects[currentSprite].scale.y += y;
       spriteObjects[currentSprite].scale.z += z;
       
+      refreshScene();
       return "Stretch changed";
     }
     
@@ -1038,6 +1158,7 @@ let cameraSettings = {
           break;
       }
       
+      refreshScene();
       return "Stretch set";
     }
     
@@ -1059,6 +1180,7 @@ let cameraSettings = {
           break;
       }
       
+      refreshScene();
       return "Stretch changed";
     }
     
@@ -1454,11 +1576,11 @@ let cameraSettings = {
         // Create a new perspective camera with default settings
         camerasObj[cameraName] = new three.PerspectiveCamera(
           cameraSettings.FOV,
-          window.innerWidth / window.innerHeight,
+          (vm.runtime.stageWidth || 480) / (vm.runtime.stageHeight || 360),
           cameraSettings.minrender,
           cameraSettings.maxrender
         );
-        camerasObj[cameraName].position.set(0, 0, 5);
+        camerasObj[cameraName].position.set(0, 0, 200);
         // Add to the cameras array for menu tracking
         cameras.push(cameraName);
       }
@@ -1488,6 +1610,7 @@ let cameraSettings = {
         switchCamera(cameraName);
         activeCamera = camerasObj[cameraName];
         currentCamera = cameraName;
+        refreshScene();
         return "Camera focused";
       }
       return "Camera not found";
@@ -1504,6 +1627,7 @@ let cameraSettings = {
         direction.applyQuaternion(camera.quaternion);
         direction.multiplyScalar(steps / 10); // Scale steps for better control
         camera.position.add(direction);
+        refreshScene();
         return "Camera moved";
       }
       return "Camera not found";
@@ -1517,6 +1641,7 @@ let cameraSettings = {
 
       if (camerasObj[cameraName]) {
         camerasObj[cameraName].position.set(x, y, z);
+        refreshScene();
         return "Camera position set";
       }
       return "Camera not found";
@@ -1532,6 +1657,7 @@ let cameraSettings = {
         camerasObj[cameraName].position.x += x;
         camerasObj[cameraName].position.y += y;
         camerasObj[cameraName].position.z += z;
+        refreshScene();
         return "Camera position changed";
       }
       return "Camera not found";
@@ -1546,6 +1672,7 @@ let cameraSettings = {
       if (camerasObj[cameraName]) {
         // Set rotation using Euler angles
         camerasObj[cameraName].rotation.set(p, y, r, 'YXZ');
+        refreshScene();
         return "Camera rotation set";
       }
       return "Camera not found";
@@ -1562,6 +1689,7 @@ let cameraSettings = {
         camerasObj[cameraName].rotation.x += p;
         camerasObj[cameraName].rotation.y += y;
         camerasObj[cameraName].rotation.z += r;
+        refreshScene();
         return "Camera rotation changed";
       }
       return "Camera not found";
@@ -1584,6 +1712,7 @@ let cameraSettings = {
             camerasObj[cameraName].position.z = value;
             break;
         }
+        refreshScene();
         return "Camera position set";
       }
       return "Camera not found";
@@ -1606,6 +1735,7 @@ let cameraSettings = {
             camerasObj[cameraName].rotation.y = value;
             break;
         }
+        refreshScene();
         return "Camera rotation set";
       }
       return "Camera not found";
@@ -1754,6 +1884,7 @@ let cameraSettings = {
       // Look at the sprite
       camera.lookAt(sprite.position);
       
+      refreshScene();
       return "Camera bound to sprite";
     }
 
@@ -1762,6 +1893,7 @@ let cameraSettings = {
       
       if (this.#cameraBoundSprites[cameraName]) {
         delete this.#cameraBoundSprites[cameraName];
+        refreshScene();
         return "Camera unbound";
       }
       
@@ -1809,6 +1941,7 @@ let cameraSettings = {
           });
           break;
       }
+      refreshScene();
       return "Camera settings updated";
     }
 
@@ -1840,14 +1973,14 @@ let cameraSettings = {
   Scratch.extensions.register(new ThreeCamera());
 
   // Attach to Scratch VM's BEFORE_EXECUTE event if available
-  if (Scratch.vm && Scratch.vm.runtime) {
-    Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+  if (vm.runtime) {
+    vm.runtime.on('BEFORE_EXECUTE', refreshScene);
     console.log("Attached refreshScene to BEFORE_EXECUTE event");
   } else {
     // If VM isn't available immediately, try again when the extension is first used
     const checkForVM = setInterval(() => {
-      if (Scratch.vm && Scratch.vm.runtime) {
-        Scratch.vm.runtime.on('BEFORE_EXECUTE', refreshScene);
+      if (vm.runtime) {
+        vm.runtime.on('BEFORE_EXECUTE', refreshScene);
         console.log("Attached refreshScene to BEFORE_EXECUTE event (delayed)");
         clearInterval(checkForVM);
       }
