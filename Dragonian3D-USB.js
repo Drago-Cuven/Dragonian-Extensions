@@ -42,9 +42,9 @@ let cameraSettings = {
   let camerasObj = {};
   let activeCamera = null;
   let isInitialized = false;
-  let currentSprite = null; // Current active sprite for motion operations
-  let spriteObjects = {}; // Store 3D objects for sprites
-  let modelObjects = {}; // Store loaded 3D models
+  let currentSprite = null; 
+  let spriteObjects = {}; 
+  let modelObjects = {}; 
 
   // Get Scratch VM and renderer
   const vm = Scratch.vm;
