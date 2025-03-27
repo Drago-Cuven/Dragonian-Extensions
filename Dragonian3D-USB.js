@@ -2531,11 +2531,7 @@ const cameraSettings = {
           },
           spriteMenu: {
             acceptReporters: true,
-            items: () => {
-              let spriteList = ["myself"]
-              spriteList = spriteList.concat(getSprites())
-              return spriteList.length > 1 ? spriteList : ["myself"]
-            },
+            items: "getSprites"
           },
         },
       }
