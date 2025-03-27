@@ -51,7 +51,7 @@ let cameraSettings = {
   const scratchRenderer = vm.runtime.renderer;
 
   // Create a custom skin class for rendering the 3D scene to Scratch
-  class ThreeDSkin extends scratchRenderer.exports.Skin {
+  class ThreeSkin extends scratchRenderer.exports.Skin {
     constructor(id, renderer) {
       super(id, renderer);
       const gl = renderer.gl;
@@ -206,7 +206,7 @@ let cameraSettings = {
   function createScratchDrawable() {
     // Create a skin for the 3D scene
     threeSkinId = scratchRenderer._nextSkinId++;
-    threeSkin = new ThreeDSkin(threeSkinId, scratchRenderer);
+    threeSkin = new ThreeSkin(threeSkinId, scratchRenderer);
     scratchRenderer._allSkins[threeSkinId] = threeSkin;
     
     // Create a drawable for the 3D scene
