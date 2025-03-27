@@ -1,263 +1,326 @@
 /**
  * DragonianUSB3D
  * Author: Drago Cuven <https://github.com/Drago-Cuven>
- * Version: 0.0.16
+ * Version: 0.0.17
  * License: MIT & LGPLv3 License
  * Do not remove this comment
  **/
 
-// Global mutable arrays and variables (using let instead cus const don't let me change stuffs)
-let models = [];
-let cameras = [];  
-let currentCamera = null;
+/*
+Currently broken.
+Errors:
 
-// Global camera settings with default values. :3
-let cameraSettings = {
+TypeError: Failed to resolve module specifier "three". Relative references must start with either "/", "./", or "../".
+
+*/
+
+
+(async function (Scratch) {
+  if (!Scratch.extensions.unsandboxed) {
+    throw new Error(`"DragonianUSB3D" must be run unsandboxed.`)
+  }
+
+  // Import links stored in one place for easy access
+const importlink = {
+  threejs: "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+  OBJLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/OBJLoader.js",
+  GLTFLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/GLTFLoader.js",
+}
+
+const threejs = await import(importlink.threejs)
+const OBJLoader = await import(importlink.OBJLoader)
+const OBJLoaded = new OBJLoader.OBJLoader()
+const GLTFLoader = await import(importlink.GLTFLoader)
+const GLTFLoaded = new GLTFLoader.GLTFLoader()
+
+// Global mutable arrays and variables
+const models = []
+let cameras = []
+let currentCamera = null
+
+// Global camera settings with default values
+const cameraSettings = {
   FOV: 90,
   minrender: 0.1,
-  maxrender: 1000
-};
+  maxrender: 1000,
+}
 
-(function (Scratch) {
-  "use strict";
+  // Constants for sprite properties
+  const IN_3D = "threejs.in3d"
+  const OBJECT = "threejs.object"
+  const THREEJS_DIRTY = "threejs.dirty"
+  const SIDE_MODE = "threejs.sidemode"
+  const TEX_FILTER = "threejs.texfilter"
+  const Z_POS = "threejs.zpos"
+  const Z_STRETCH = "threejs.zstretch"
+  const YAW = "threejs.yaw"
+  const PITCH = "threejs.pitch"
+  const ROLL = "threejs.roll"
+  const ATTACHED_TO = "threejs.attachedto"
+  const MODE = "threejs.mode"
 
-  if (!Scratch.extensions.unsandboxed) {
-    throw new Error(`"Dragonian3D" must be run unsandboxed.`);
-  }
-
-  // Dynamically import Three.js
-  async function loadThree() {
-    try {
-      const three = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js');
-      return three;
-    } catch (error) {
-      console.error("Failed to load Three.js:", error);
-      return null;
-    }
-  }
-
-  let three = null;
-  let scene = null;
-  let renderer = null;
-  let camerasObj = {};
-  let activeCamera = null;
-  let isInitialized = false;
-  let currentSprite = null; 
-  let spriteObjects = {}; 
-  let modelObjects = {}; 
+  let scene = null
+  let renderer = null
+  let camerasObj = {}
+  let activeCamera = null
+  let isInitialized = false
+  const currentSprite = null
+  const spriteObjects = {}
+  const modelObjects = {}
 
   // Get Scratch VM and renderer
-  const vm = Scratch.vm;
-  const scratchRenderer = vm.runtime.renderer;
+  const vm = Scratch.vm
+  const runtime = vm.runtime
+  const scratchRenderer = vm.runtime.renderer
 
   // Create a custom skin class for rendering the 3D scene to Scratch
-  class ThreeSkin extends scratchRenderer.exports.Skin {
+  class ThreejsSkin extends scratchRenderer.exports.Skin {
     constructor(id, renderer) {
-      super(id, renderer);
-      const gl = renderer.gl;
-      const texture = gl.createTexture();
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-      this._texture = texture;
-      this._rotationCenter = [240, 180];
-      this._size = [480, 360];
+      super(id, renderer)
+      const gl = renderer.gl
+      const texture = gl.createTexture()
+      gl.bindTexture(gl.TEXTURE_2D, texture)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+      this._texture = texture
+      this._rotationCenter = [240, 180]
+      this._size = [480, 360]
     }
-    
+
     dispose() {
       if (this._texture) {
-        this._renderer.gl.deleteTexture(this._texture);
-        this._texture = null;
+        this._renderer.gl.deleteTexture(this._texture)
+        this._texture = null
       }
-      super.dispose();
+      super.dispose()
     }
-    
+
     set size(value) {
-      this._size = value;
-      this._rotationCenter = [value[0] / 2, value[1] / 2];
+      this._size = value
+      this._rotationCenter = [value[0] / 2, value[1] / 2]
     }
-    
+
     get size() {
-      return this._size;
+      return this._size
     }
-    
+
     getTexture(scale) {
-      return this._texture || super.getTexture(scale);
+      return this._texture || super.getTexture(scale)
     }
-    
+
     setContent(textureData) {
-      const gl = this._renderer.gl;
-      gl.bindTexture(gl.TEXTURE_2D, this._texture);
-      gl.texImage2D(
-        gl.TEXTURE_2D,
-        0,
-        gl.RGBA,
-        gl.RGBA,
-        gl.UNSIGNED_BYTE,
-        textureData
-      );
-      this.emitWasAltered();
+      const gl = this._renderer.gl
+      gl.bindTexture(gl.TEXTURE_2D, this._texture)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureData)
+      this.emitWasAltered()
     }
   }
 
-  loadThree().then(loadedThree => {
-    if (loadedThree) {
-      three = loadedThree;
-      initialize3D();
-    } else {
-      console.error("Three.js failed to load, extension cannot initialize.");
+  // Patching system for Scratch objects
+  const PATCHES_ID = "__patches_dragonian3d"
+  const patch = (obj, functions) => {
+    if (obj[PATCHES_ID]) return
+    obj[PATCHES_ID] = {}
+    for (const name in functions) {
+      const original = obj[name]
+      obj[PATCHES_ID][name] = obj[name]
+      if (original) {
+        obj[name] = function (...args) {
+          const callOriginal = (...ogArgs) => original.call(this, ...ogArgs)
+          return functions[name].call(this, callOriginal, ...args)
+        }
+      } else {
+        obj[name] = function (...args) {
+          return functions[name].call(this, () => {}, ...args)
+        }
+      }
     }
-  });
+  }
 
+  const unpatch = (obj) => {
+    if (!obj[PATCHES_ID]) return
+    for (const name in obj[PATCHES_ID]) {
+      obj[name] = obj[PATCHES_ID][name]
+    }
+    delete obj[PATCHES_ID]
+  }
+
+  // This will be called when the initialize scene block is executed, not before
   function initialize3D() {
+    if (isInitialized) {
+      return // Don't initialize if already done
+    } else {
+      completeInitialization()
+    }
+
+
+  function completeInitialization() {
     // Initialize the scene and renderer
-    scene = new three.Scene();
-    renderer = new three.WebGLRenderer({ antialias: true });
-    renderer.setSize(vm.runtime.stageWidth || 480, vm.runtime.stageHeight || 360);
-    renderer.setClearColor(0x000000, 0); // Transparent background
-    
+    scene = new threejs.Scene()
+    renderer = new threejs.WebGLRenderer({ antialias: true })
+    renderer.setSize(runtime.stageWidth || 480, runtime.stageHeight || 360)
+    renderer.setClearColor(0x000000, 0) // Transparent background
+
     // Add ambient light to the scene
-    const ambientLight = new three.AmbientLight(0xffffff, 0.5);
-    scene.add(ambientLight);
+    const ambientLight = new threejs.AmbientLight(0xffffff, 0.5)
+    scene.add(ambientLight)
 
     // Add directional light to the scene
-    const directionalLight = new three.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
+    const directionalLight = new threejs.DirectionalLight(0xffffff, 0.8)
+    directionalLight.position.set(1, 1, 1)
+    scene.add(directionalLight)
 
-    // Manage multiple cameras with an object for ez access
-    camerasObj = {};
+    // Manage multiple cameras with an object for easy access
+    camerasObj = {}
 
     // Create the default camera
-    camerasObj.default = new three.PerspectiveCamera(
+    camerasObj.default = new threejs.PerspectiveCamera(
       cameraSettings.FOV,
-      (vm.runtime.stageWidth || 480) / (vm.runtime.stageHeight || 360),
+      (runtime.stageWidth || 480) / (runtime.stageHeight || 360),
       cameraSettings.minrender,
-      cameraSettings.maxrender
-    );
-    camerasObj.default.position.set(0, 0, 200);
-    camerasObj.default.lookAt(0, 0, 0);
+      cameraSettings.maxrender,
+    )
+    camerasObj.default.position.set(0, 0, 200)
+    camerasObj.default.lookAt(0, 0, 0)
 
     // Create an additional top view camera
-    camerasObj.topView = new three.OrthographicCamera(
-      (vm.runtime.stageWidth || 480) / -2,
-      (vm.runtime.stageWidth || 480) / 2,
-      (vm.runtime.stageHeight || 360) / 2,
-      (vm.runtime.stageHeight || 360) / -2,
+    camerasObj.topView = new threejs.OrthographicCamera(
+      (runtime.stageWidth || 480) / -2,
+      (runtime.stageWidth || 480) / 2,
+      (runtime.stageHeight || 360) / 2,
+      (runtime.stageHeight || 360) / -2,
       0.1,
-      1000
-    );
-    camerasObj.topView.position.set(0, 200, 0);
-    camerasObj.topView.lookAt(0, 0, 0);
+      1000,
+    )
+    camerasObj.topView.position.set(0, 200, 0)
+    camerasObj.topView.lookAt(0, 0, 0)
 
     // Set active camera
-    activeCamera = camerasObj.default;
-    currentCamera = "default";
+    activeCamera = camerasObj.default
+    currentCamera = "default"
 
     // Add default cameras to the cameras array for tracking
-    cameras.push("default");
-    cameras.push("topView");
-
-    // Create a default sprite (cube)
-    createDefaultSprite();
+    cameras.push("default")
+    cameras.push("topView")
 
     // Create a skin and drawable for the 3D scene in Scratch
-    createScratchDrawable();
+    createScratchDrawable()
 
     // Handle window resizing
-    window.addEventListener('resize', () => {
-      const width = vm.runtime.stageWidth || 480;
-      const height = vm.runtime.stageHeight || 360;
+    window.addEventListener("resize", () => {
+      const width = runtime.stageWidth || 480
+      const height = runtime.stageHeight || 360
 
-      renderer.setSize(width, height);
+      renderer.setSize(width, height)
 
       // Update perspective camera aspect ratios
       Object.values(camerasObj).forEach((camera) => {
         if (camera.isPerspectiveCamera) {
-          camera.aspect = width / height;
-          camera.updateProjectionMatrix();
+          camera.aspect = width / height
+          camera.updateProjectionMatrix()
         } else if (camera.isOrthographicCamera) {
           // Update orthographic camera frustum
-          camera.left = width / -2;
-          camera.right = width / 2;
-          camera.top = height / 2;
-          camera.bottom = height / -2;
-          camera.updateProjectionMatrix();
+          camera.left = width / -2
+          camera.right = width / 2
+          camera.top = height / 2
+          camera.bottom = height / -2
+          camera.updateProjectionMatrix()
         }
-      });
-    });
+      })
+    })
 
-    isInitialized = true;
+    // Apply patches to Scratch objects
+    applyPatches()
+
+    isInitialized = true
 
     // Attach to Scratch VM's BEFORE_EXECUTE event if available
-    if (vm.runtime) {
-      vm.runtime.on('BEFORE_EXECUTE', refreshScene);
-      console.log("Attached refreshScene to BEFORE_EXECUTE event");
+    if (runtime) {
+      runtime.on("BEFORE_EXECUTE", refreshScene)
+      console.log("Attached refreshScene to BEFORE_EXECUTE event")
     }
   }
 
   // Create a Scratch drawable for the 3D scene
-  let threeSkinId = null;
-  let threeDrawableId = null;
-  let threeSkin = null;
+  let threejsSkinId = null
+  let threejsDrawableId = null
+  let threejsSkin = null
 
   function createScratchDrawable() {
     // Create a skin for the 3D scene
-    threeSkinId = scratchRenderer._nextSkinId++;
-    threeSkin = new ThreeSkin(threeSkinId, scratchRenderer);
-    scratchRenderer._allSkins[threeSkinId] = threeSkin;
-    
+    threejsSkinId = scratchRenderer._nextSkinId++
+    threejsSkin = new ThreejsSkin(threejsSkinId, scratchRenderer)
+    scratchRenderer._allSkins[threejsSkinId] = threejsSkin
+
     // Create a drawable for the 3D scene
-    threeDrawableId = scratchRenderer.createDrawable('pen');
-    scratchRenderer.updateDrawableSkinId(threeDrawableId, threeSkinId);
-    
+    threejsDrawableId = scratchRenderer.createDrawable("pen")
+    scratchRenderer.updateDrawableSkinId(threejsDrawableId, threejsSkinId)
+
     // Set the drawable to be always visible and on top
-    scratchRenderer.updateDrawableVisible(threeDrawableId, true);
-    scratchRenderer.updateDrawableEffect(threeDrawableId, 'ghost', 0);
-    
+    scratchRenderer.updateDrawableVisible(threejsDrawableId, true)
+    scratchRenderer.updateDrawableEffect(threejsDrawableId, "ghost", 0)
+
     // Position the drawable to cover the entire stage
-    scratchRenderer.updateDrawablePosition(threeDrawableId, [0, 0]);
-    scratchRenderer.updateDrawableScale(threeDrawableId, [100, 100]);
-    
+    scratchRenderer.updateDrawablePosition(threejsDrawableId, [0, 0])
+    scratchRenderer.updateDrawableScale(threejsDrawableId, [100, 100])
+
     // Make sure the 3D scene is rendered on top of everything
-    vm.runtime.on('BEFORE_DRAW', () => {
+    runtime.on("BEFORE_DRAW", () => {
       if (isInitialized) {
         // Render the 3D scene
-        renderer.render(scene, activeCamera);
-        
+        renderer.render(scene, activeCamera)
+
         // Update the Scratch skin with the rendered 3D scene
-        if (threeSkin) {
-          threeSkin.setContent(renderer.domElement);
+        if (threejsSkin) {
+          threejsSkin.setContent(renderer.domElement)
         }
       }
-    });
-  }
-
-  // Create a default sprite (cube) for initial use
-  function createDefaultSprite() {
-    const geometry = new three.BoxGeometry(50, 50, 50);
-    const material = new three.MeshStandardMaterial({ color: 0x00ff00 });
-    const cube = new three.Mesh(geometry, material);
-    scene.add(cube);
-    
-    // Store the sprite
-    spriteObjects["default"] = cube;
-    currentSprite = "default";
+    })
   }
 
   // Function to refresh the scene - will be called before each execution cycle
   function refreshScene() {
     if (isInitialized && scene && renderer && activeCamera) {
       // Update any dynamic elements in the scene here
-      
+      updateSpritePositions()
+
       // Render the scene with the active camera
-      renderer.render(scene, activeCamera);
-      
+      renderer.render(scene, activeCamera)
+
       // Update the Scratch skin with the rendered 3D scene
-      if (threeSkin) {
-        threeSkin.setContent(renderer.domElement);
+      if (threejsSkin) {
+        threejsSkin.setContent(renderer.domElement)
+      }
+    }
+  }
+
+  // Update 3D objects to match Scratch sprite positions
+  function updateSpritePositions() {
+    for (const target of runtime.targets) {
+      if (target.isStage) continue
+
+      const drawableID = target.drawableID
+      const drawable = scratchRenderer._allDrawables[drawableID]
+
+      if (drawable && drawable[IN_3D] && drawable[OBJECT]) {
+        // Update position from Scratch sprite
+        drawable[OBJECT].position.x = target.x
+        drawable[OBJECT].position.y = target.y
+
+        // Update rotation from Scratch sprite
+        drawable[ROLL] = threejs.MathUtils.degToRad(90 - target.direction)
+        updateSpriteAngle(drawable)
+
+        // Update scale based on Scratch sprite size
+        const { direction, scale } = target._getRenderedDirectionAndScale()
+        drawable[OBJECT].scale.x = ((drawable[OBJECT]._sizeX || 100) / 100) * scale[0]
+        drawable[OBJECT].scale.y = ((drawable[OBJECT]._sizeY || 100) / 100) * scale[1]
+        drawable[OBJECT].scale.z = ((drawable[OBJECT]._sizeZ || 100) / 100) * (drawable[Z_STRETCH] || scale[0])
+
+        // Update attachments
+        updateAttachment(drawable)
       }
     }
   }
@@ -265,90 +328,559 @@ let cameraSettings = {
   // Function to switch between cameras
   function switchCamera(cameraName) {
     if (camerasObj[cameraName]) {
-      activeCamera = camerasObj[cameraName];
-      currentCamera = cameraName;
+      activeCamera = camerasObj[cameraName]
+      currentCamera = cameraName
     } else {
-      console.warn(`Camera '${cameraName}' not found.`);
+      console.warn(`Camera '${cameraName}' not found.`)
     }
   }
 
   // Load a 3D model from URL
-  async function loadModel(modelName, modelURL) {
-    if (!three) return null;
-    
+  async function loadModel(modelName, modelURL, modelType) {
+    if (!threejs) return null
+
     try {
       // For OBJ files
-      if (modelURL.toLowerCase().endsWith('.obj')) {
-        const OBJLoader = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/OBJLoader.js');
-        const loader = new OBJLoader.OBJLoader();
-        
+      if (modelType === "obj" || modelURL.toLowerCase().endsWith(".obj")) {
         return new Promise((resolve, reject) => {
-          loader.load(
+          OBJLoaded.load(
             modelURL,
             (object) => {
-              resolve(object);
+              resolve(object)
             },
             (xhr) => {
-              console.log(`${modelName} ${(xhr.loaded / xhr.total * 100)}% loaded`);
+              console.log(`${modelName} ${(xhr.loaded / xhr.total) * 100}% loaded`)
             },
             (error) => {
-              console.error('Error loading model:', error);
-              reject(error);
-            }
-          );
-        });
+              console.error("Error loading model:", error)
+              reject(error)
+            },
+          )
+        })
       }
       // For GLTF/GLB files
-      else if (modelURL.toLowerCase().endsWith('.gltf') || modelURL.toLowerCase().endsWith('.glb')) {
-        const GLTFLoader = await import('https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/GLTFLoader.js');
-        const loader = new GLTFLoader.GLTFLoader();
-        
+      else if (
+        modelType === "gltf" ||
+        modelType === "glb" ||
+        modelURL.toLowerCase().endsWith(".gltf") ||
+        modelURL.toLowerCase().endsWith(".glb")
+      ) {
+
         return new Promise((resolve, reject) => {
-          loader.load(
+          GLTFLoaded.load(
             modelURL,
             (gltf) => {
-              resolve(gltf.scene);
+              resolve(gltf.scene)
             },
             (xhr) => {
-              console.log(`${modelName} ${(xhr.loaded / xhr.total * 100)}% loaded`);
+              console.log(`${modelName} ${(xhr.loaded / xhr.total) * 100}% loaded`)
             },
             (error) => {
-              console.error('Error loading model:', error);
-              reject(error);
-            }
-          );
-        });
+              console.error("Error loading model:", error)
+              reject(error)
+            },
+          )
+        })
       } else {
-        console.error('Unsupported model format. Please use .obj, .gltf, or .glb files.');
-        return null;
+        console.error("Unsupported model format. Please use .obj, .gltf, or .glb files.")
+        return null
       }
     } catch (error) {
-      console.error('Error loading model:', error);
-      return null;
+      console.error("Error loading model:", error)
+      return null
     }
   }
 
-  // Global extension variables – note that we reuse the global arrays above.
-  let ext = {
+  // Apply patches to Scratch objects
+  function applyPatches() {
+    const Drawable = scratchRenderer.exports.Drawable
+
+    patch(Drawable.prototype, {
+      getVisible(og) {
+        if (this[IN_3D]) return false
+        return og()
+      },
+      updateVisible(og, value) {
+        if (this[IN_3D]) {
+          const o = this[OBJECT]
+          if (o && o.visible !== value) {
+            o.visible = value
+            renderer[THREEJS_DIRTY] = true
+          }
+        }
+        return og(value)
+      },
+      updatePosition(og, position) {
+        if (this[IN_3D]) {
+          const o = this[OBJECT]
+          if (o) {
+            o.position.x = position[0]
+            o.position.y = position[1]
+            renderer[THREEJS_DIRTY] = true
+          }
+        }
+        return og(position)
+      },
+      updateDirection(og, direction) {
+        if (this[IN_3D]) {
+          this[ROLL] = threejs.MathUtils.degToRad(90 - direction)
+          updateSpriteAngle(this)
+          renderer[THREEJS_DIRTY] = true
+        }
+        return og(direction)
+      },
+      updateScale(og, scale) {
+        if (this[IN_3D]) {
+          const obj = this[OBJECT]
+          if (obj) {
+            obj.scale.x = ((obj._sizeX || 100) / 100) * scale[0]
+            obj.scale.y = ((obj._sizeY || 100) / 100) * scale[1]
+            obj.scale.z = ((obj._sizeZ || 100) / 100) * (this[Z_STRETCH] || scale[0])
+            renderer[THREEJS_DIRTY] = true
+          }
+        }
+        return og(scale)
+      },
+      dispose(og) {
+        if (this[OBJECT]) {
+          this[OBJECT].removeFromParent()
+          if (this[OBJECT].material) {
+            if (Array.isArray(this[OBJECT].material)) {
+              this[OBJECT].material.forEach((mat) => {
+                if (mat.map) mat.map.dispose()
+                mat.dispose()
+              })
+            } else {
+              if (this[OBJECT].material.map) this[OBJECT].material.map.dispose()
+              this[OBJECT].material.dispose()
+            }
+          }
+          if (this[OBJECT].geometry) this[OBJECT].geometry.dispose()
+          this[OBJECT] = null
+          renderer[THREEJS_DIRTY] = true
+        }
+        return og()
+      },
+      _skinWasAltered(og) {
+        og()
+        if (this[IN_3D]) {
+          updateDrawableSkin(this)
+          renderer[THREEJS_DIRTY] = true
+        }
+      },
+    })
+
+    patch(scratchRenderer, {
+      draw(og) {
+        if (this[THREEJS_DIRTY]) {
+          // Do a 3D redraw
+          refreshScene()
+          this[THREEJS_DIRTY] = false
+        }
+        return og()
+      },
+    })
+  }
+
+  // Update the sprite's angle in 3D space
+  function updateSpriteAngle(drawable) {
+    if (!drawable[IN_3D]) return
+    const obj = drawable[OBJECT]
+    if (!obj) return
+
+    obj.rotation.x = 0
+    obj.rotation.y = 0
+    obj.rotation.z = 0
+
+    const WRAP_MIN = threejs.MathUtils.degToRad(-180)
+    const WRAP_MAX = threejs.MathUtils.degToRad(180)
+    drawable[YAW] = wrapClamp(drawable[YAW] || 0, WRAP_MIN, WRAP_MAX)
+    drawable[PITCH] = wrapClamp(drawable[PITCH] || 0, WRAP_MIN, WRAP_MAX)
+    drawable[ROLL] = wrapClamp(drawable[ROLL] || 0, WRAP_MIN, WRAP_MAX)
+
+    obj.rotation.y = drawable[YAW]
+    obj.rotateOnAxis(new threejs.Vector3(1, 0, 0), drawable[PITCH])
+    obj.rotateOnAxis(new threejs.Vector3(0, 0, 1), threejs.MathUtils.degToRad(90) - drawable[ROLL])
+  }
+
+  // Helper function for angle wrapping
+  function wrapClamp(n, min, max) {
+    const offset = n - min
+    const range = max - min
+    return min + mod(offset, range)
+  }
+
+  function mod(n, modulus) {
+    let result = n % modulus
+    if (result / modulus < 0) result += modulus
+    return result
+  }
+
+  // Update the attachment of a sprite to another sprite
+  function updateAttachment(drawable) {
+    if (!scene) return
+    if (drawable[IN_3D]) {
+      const newParent = drawable[ATTACHED_TO]?.[OBJECT] || scene
+      if (drawable[OBJECT] && drawable[OBJECT].parent !== newParent) {
+        drawable[OBJECT].removeFromParent()
+        newParent.add(drawable[OBJECT])
+        renderer[THREEJS_DIRTY] = true
+      }
+    }
+  }
+
+  // Update the skin texture of a drawable
+  function updateDrawableSkin(drawable) {
+    if (drawable[OBJECT] && drawable[OBJECT].material) {
+      const texture = getThreeTextureFromSkin(drawable.skin)
+
+      if (Array.isArray(drawable[OBJECT].material)) {
+        drawable[OBJECT].material.forEach((material) => {
+          material.map = texture
+          material.needsUpdate = true
+        })
+      } else {
+        drawable[OBJECT].material.map = texture
+        drawable[OBJECT].material.needsUpdate = true
+      }
+
+      updateMaterialForDrawable(drawable)
+    }
+  }
+
+  // Update material properties for a drawable
+  function updateMaterialForDrawable(drawable) {
+    if (!drawable[IN_3D]) return
+    const obj = drawable[OBJECT]
+    if (!obj || !obj.material) return
+
+    if (!(SIDE_MODE in drawable)) drawable[SIDE_MODE] = threejs.DoubleSide
+    if (!(TEX_FILTER in drawable)) drawable[TEX_FILTER] = threejs.LinearMipmapLinearFilter
+
+    const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
+
+    materials.forEach((material) => {
+      material.side = drawable[SIDE_MODE]
+      material.transparent = true
+
+      if (material.map) {
+        material.map.minFilter = drawable[TEX_FILTER]
+        material.map.magFilter =
+          drawable[TEX_FILTER] === threejs.NearestFilter ? threejs.NearestFilter : threejs.LinearFilter
+        material.map.needsUpdate = true
+      }
+    })
+  }
+
+  // Get a Three.js texture from a Scratch skin
+  function getThreeTextureFromSkin(skin) {
+    if (skin._3dCachedTexture) return skin._3dCachedTexture
+
+    const canvas = getCanvasFromSkin(skin)
+    if (canvas instanceof Promise) {
+      return canvas.then((resolvedCanvas) => {
+        skin._3dCachedTexture = new threejs.CanvasTexture(resolvedCanvas)
+        skin._3dCachedTexture.colorSpace = threejs.SRGBColorSpace
+        return skin._3dCachedTexture
+      })
+    }
+
+    skin._3dCachedTexture = new threejs.CanvasTexture(canvas)
+    skin._3dCachedTexture.colorSpace = threejs.SRGBColorSpace
+
+    return skin._3dCachedTexture
+  }
+
+  // Get a canvas from a Scratch skin
+  function getCanvasFromSkin(skin) {
+    const emptyCanvas = () => {
+      const canvas = document.createElement("canvas")
+      canvas.width = 1
+      canvas.height = 1
+      return canvas
+    }
+
+    try {
+      // For bitmap skins
+      if (skin.constructor === scratchRenderer.exports.BitmapSkin) {
+        if (skin._textureSize[0] < 1 || skin._textureSize[1] < 1) return emptyCanvas()
+
+        const gl = scratchRenderer.gl
+        const texture = skin.getTexture()
+        const width = skin._textureSize[0]
+        const height = skin._textureSize[1]
+
+        // Create a framebuffer to read the texture
+        const framebuffer = gl.createFramebuffer()
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer)
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0)
+
+        // Read the pixels
+        const data = new Uint8Array(width * height * 4)
+        gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, data)
+
+        // Clean up
+        gl.deleteFramebuffer(framebuffer)
+
+        // Create a canvas with the texture data
+        const canvas = document.createElement("canvas")
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext("2d")
+        const imageData = new ImageData(width, height)
+        imageData.data.set(data)
+        ctx.putImageData(imageData, 0, 0)
+
+        return canvas
+      }
+      // For SVG skins
+      else if (skin.constructor === scratchRenderer.exports.SVGSkin) {
+        // Get the SVG element
+        const svgElement = skin._svgTag
+        if (!svgElement) return emptyCanvas()
+
+        // Create a canvas
+        const canvas = document.createElement("canvas")
+        canvas.width = skin._size[0]
+        canvas.height = skin._size[1]
+        const ctx = canvas.getContext("2d")
+
+        // Draw the SVG to the canvas
+        const img = new Image()
+        const svgData = new XMLSerializer().serializeToString(svgElement)
+        const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" })
+        const url = URL.createObjectURL(svgBlob)
+
+        return new Promise((resolve) => {
+          img.onload = () => {
+            ctx.drawImage(img, 0, 0)
+            URL.revokeObjectURL(url)
+            resolve(canvas)
+          }
+          img.src = url
+        })
+      }
+    } catch (error) {
+      console.error("Error getting canvas from skin:", error)
+    }
+
+    return emptyCanvas()
+  }
+
+  // Enable 3D for a drawable with the specified mode
+  function enable3DForDrawable(drawableID, mode = "flat") {
+    const drawable = scratchRenderer._allDrawables[drawableID]
+    if (!drawable || drawable[IN_3D]) return
+
+    drawable[IN_3D] = true
+    drawable[MODE] = mode
+
+    let obj
+    if (mode === "sprite") {
+      obj = new threejs.Sprite(new threejs.SpriteMaterial())
+    } else {
+      obj = new threejs.Mesh()
+    }
+
+    drawable[OBJECT] = obj
+    updateMeshForDrawable(drawableID, mode)
+
+    if (!(YAW in drawable)) drawable[YAW] = 0
+    if (!(PITCH in drawable)) drawable[PITCH] = 0
+    if (!(ROLL in drawable)) drawable[ROLL] = threejs.MathUtils.degToRad(90 - drawable.direction)
+    if (!(Z_POS in drawable)) drawable[Z_POS] = 0
+
+    // Set initial position from Scratch sprite
+    const target = runtime.targets.find((t) => t.drawableID === drawableID)
+    if (target) {
+      obj.position.x = target.x
+      obj.position.y = target.y
+      obj.position.z = drawable[Z_POS]
+    }
+
+    scene.add(obj)
+    updateAttachment(drawable)
+    renderer[THREEJS_DIRTY] = true
+  }
+
+  // Update the mesh for a drawable based on the specified mode
+  function updateMeshForDrawable(drawableID, mode) {
+    const drawable = scratchRenderer._allDrawables[drawableID]
+    if (!drawable[IN_3D]) return
+
+    const obj = drawable[OBJECT]
+    if (!obj) return
+
+    // Get the skin size
+    const skinSize = drawable.skin.size || [100, 100]
+    const width = skinSize[0]
+    const height = skinSize[1]
+    const depth = Math.max(width, height) / 2
+
+    // Dispose of existing geometry and material
+    if (obj.geometry) obj.geometry.dispose()
+    if (obj.material) {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach((mat) => mat.dispose())
+      } else {
+        obj.material.dispose()
+      }
+    }
+
+    // Create new geometry and material based on mode
+    if (obj.isSprite) {
+      obj.material = new threejs.SpriteMaterial()
+      obj._sizeX = 100
+      obj._sizeY = 100
+      obj._sizeZ = 100
+    } else {
+      switch (mode) {
+        case "flat":
+          obj.geometry = new threejs.PlaneGeometry(width, height)
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+        case "flat triangle": {
+          const geometry = new threejs.BufferGeometry()
+          const w = width / 2
+          const h = height / 2
+
+          const vertices = new Float32Array([-w, -h, 0.0, w, -h, 0.0, -w, h, 0.0])
+          const uvs = new Float32Array([0, 0, 1, 0, 0, 1])
+          geometry.setIndex([0, 1, 2])
+          geometry.setAttribute("position", new threejs.BufferAttribute(vertices, 3))
+          geometry.setAttribute("uv", new threejs.BufferAttribute(uvs, 2))
+          obj.geometry = geometry
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+        }
+        case "cube":
+          obj.geometry = new threejs.BoxGeometry(width, height, depth)
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+        case "sphere":
+          obj.geometry = new threejs.SphereGeometry(depth, 24, 12)
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+        case "low-poly sphere":
+          obj.geometry = new threejs.SphereGeometry(depth, 8, 6)
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+        default:
+          obj.geometry = new threejs.PlaneGeometry(width, height)
+          obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+          break
+      }
+
+      obj._sizeX = 100
+      obj._sizeY = 100
+      obj._sizeZ = 100
+    }
+
+    // Apply texture from skin
+    const texture = getThreeTextureFromSkin(drawable.skin)
+
+    if (texture instanceof Promise) {
+      texture.then((resolvedTexture) => {
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((material) => {
+            material.map = resolvedTexture
+            material.needsUpdate = true
+          })
+        } else {
+          obj.material.map = resolvedTexture
+          obj.material.needsUpdate = true
+        }
+        updateMaterialForDrawable(drawable)
+      })
+    } else {
+      if (Array.isArray(obj.material)) {
+        obj.material.forEach((material) => {
+          material.map = texture
+          material.needsUpdate = true
+        })
+      } else {
+        obj.material.map = texture
+        obj.material.needsUpdate = true
+      }
+      updateMaterialForDrawable(drawable)
+    }
+
+    // Update scale based on sprite scale
+    const target = runtime.targets.find((t) => t.drawableID === drawableID)
+    if (target) {
+      const { direction, scale } = target._getRenderedDirectionAndScale()
+      obj.scale.x = ((obj._sizeX || 100) / 100) * scale[0]
+      obj.scale.y = ((obj._sizeY || 100) / 100) * scale[1]
+      obj.scale.z = ((obj._sizeZ || 100) / 100) * (drawable[Z_STRETCH] || scale[0])
+    }
+  }
+
+  // Disable 3D for a drawable
+  function disable3DForDrawable(drawableID) {
+    const drawable = scratchRenderer._allDrawables[drawableID]
+    if (!drawable || !drawable[IN_3D]) return
+
+    drawable[IN_3D] = false
+
+    if (drawable[OBJECT]) {
+      drawable[Z_POS] = drawable[OBJECT].position.z
+
+      drawable[OBJECT].removeFromParent()
+
+      if (drawable[OBJECT].material) {
+        if (Array.isArray(drawable[OBJECT].material)) {
+          drawable[OBJECT].material.forEach((mat) => {
+            if (mat.map) mat.map.dispose()
+            mat.dispose()
+          })
+        } else {
+          if (drawable[OBJECT].material.map) drawable[OBJECT].material.map.dispose()
+          drawable[OBJECT].material.dispose()
+        }
+      }
+
+      if (drawable[OBJECT].geometry) drawable[OBJECT].geometry.dispose()
+      drawable[OBJECT] = null
+    }
+
+    renderer[THREEJS_DIRTY] = true
+  }
+
+  // Set skybox color for the scene
+  function setSkyboxColor(color) {
+    if (!isInitialized || !scene) return
+
+    // Convert color from Scratch format (#RRGGBB) to threejs format (0xRRGGBB)
+    let colorValue = color
+    if (typeof color === "string" && color.startsWith("#")) {
+      colorValue = Number.parseInt(color.substring(1), 16)
+    }
+
+    scene.background = new threejs.Color(colorValue)
+    renderer[THREEJS_DIRTY] = true
+  }
+
+  // Global extension variables
+  const ext = {
     colors: {
-      three: "#0000FF",
+      threejs: "#0000FF",
       motion: "#396FAF",
       looks: "#734EBF",
       events: "#BF8F00",
       camera: "#BF3F26",
-      control: "#BF8F00"
+      control: "#BF8F00",
     },
     cameras: cameras,
     models: models,
-    three: three,
+    threejs: threejs,
     scene: scene,
     renderer: renderer,
     camerasObj: camerasObj,
     activeCamera: activeCamera,
     switchCamera: switchCamera,
     spriteObjects: spriteObjects,
-    currentSprite: currentSprite
-  };
+    currentSprite: currentSprite,
+  }
 
   /* =======================================================================
    * Three: Scene Management (Single Scene)
@@ -356,82 +888,156 @@ let cameraSettings = {
    *  - initialize scene
    *  - scene [ONOFF]   (menu onoff: on, off)
    *  - 3D on?         (boolean reporter)
+   *  - scene skybox color [COLOR]
    * ======================================================================= */
   class Three {
     constructor() {
-      this.scene = null; // Single scene storage
+      this.scene = null // Single scene storage
     }
     getInfo() {
       return {
-        id: 'DragonianUSB3D',
-        name: '3D',
-        color1: ext.colors.three,
+        id: "DragonianUSB3D",
+        name: "3D",
+        color1: ext.colors.threejs,
         blocks: [
           {
-            opcode: 'initializeScene',
+            opcode: "initializeScene",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'initialize scene'
+            text: "initialize scene",
           },
           {
-            opcode: 'toggleScene',
+            opcode: "toggleScene",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'scene [ONOFF]',
+            text: "scene [ONOFF]",
             arguments: {
-              ONOFF: { type: Scratch.ArgumentType.STRING, menu: 'onoff', defaultValue: 'on' }
-            }
+              ONOFF: { type: Scratch.ArgumentType.STRING, menu: "onoff", defaultValue: "on" },
+            },
           },
           {
-            opcode: 'is3DOn',
+            opcode: "is3DOn",
             blockType: Scratch.BlockType.BOOLEAN,
-            text: '3D on?'
+            text: "3D on?",
           },
           {
-            opcode: 'existingScenes',
-            blockType: Scratch.BlockType.ARRAY,
-            text: 'existing scenes'
-          }
+            opcode: "setSkyboxColor",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "scene skybox color [COLOR]",
+            arguments: {
+              COLOR: { type: Scratch.ArgumentType.COLOR, defaultValue: "#000000" },
+            },
+          },
+          {
+            opcode: "setMode",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "set 3D mode to [MODE]",
+            arguments: {
+              MODE: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "MODE_MENU",
+                defaultValue: "flat",
+              },
+            },
+          },
         ],
         menus: {
           onoff: {
             acceptReporters: true,
-            items: ['on', 'off']
-          }
-        }
-      };
-    }
-    initializeScene() { 
-      if (!isInitialized && three) {
-        initialize3D();
-        return "Scene initialized";
+            items: ["on", "off"],
+          },
+          MODE_MENU: {
+            acceptReporters: true,
+            items: ["disabled", "flat", "flat triangle", "sprite", "cube", "sphere", "low-poly sphere"],
+          },
+          spriteMenu: {
+            acceptReporters: true,
+            items: "getSprites",
+          },
+        },
       }
-      return "Scene already initialized";
     }
-    
-    toggleScene(args) { 
+
+    initializeScene() {
+      if (!isInitialized) {
+        initialize3D()
+        return "Scene initialized"
+      }
+      return "Scene already initialized"
+    }
+
+    toggleScene(args) {
       if (isInitialized && renderer) {
-        if (args.ONOFF === 'on') {
-          if (threeDrawableId) {
-            scratchRenderer.updateDrawableVisible(threeDrawableId, true);
+        if (args.ONOFF === "on") {
+          if (threejsDrawableId) {
+            scratchRenderer.updateDrawableVisible(threejsDrawableId, true)
           }
-          return "Scene turned on";
+          return "Scene turned on"
         } else {
-          if (threeDrawableId) {
-            scratchRenderer.updateDrawableVisible(threeDrawableId, false);
+          if (threejsDrawableId) {
+            scratchRenderer.updateDrawableVisible(threejsDrawableId, false)
           }
-          return "Scene turned off";
+          return "Scene turned off"
         }
       }
-      return "Scene not initialized";
+      return "Scene not initialized"
     }
-    
-    is3DOn() { 
-      return isInitialized && threeDrawableId && 
-             scratchRenderer._allDrawables[threeDrawableId].visible;
+
+    is3DOn() {
+      return isInitialized && threejsDrawableId && scratchRenderer._allDrawables[threejsDrawableId].visible
     }
-    
-    existingScenes() { 
-      // We only have one scene in this implementation
-      return JSON.stringify(["main"]); 
+
+    setSkyboxColor(args) {
+      if (!isInitialized) {
+        return "Scene not initialized"
+      }
+
+      setSkyboxColor(args.COLOR)
+      return "Skybox color set"
+    }
+
+    setMode({ MODE }, util) {
+      if (util.target.isStage) return
+
+      this.init()
+      switch (MODE) {
+        case "disabled":
+          disable3DForDrawable(util.target.drawableID)
+          break
+        case "flat":
+        case "flat triangle":
+        case "sprite":
+        case "cube":
+        case "sphere":
+        case "low-poly sphere":
+          disable3DForDrawable(util.target.drawableID)
+          enable3DForDrawable(util.target.drawableID, MODE)
+          break
+      }
+    }
+
+    init() {
+      if (!isInitialized) {
+        initialize3D()
+      }
+    }
+
+    getSprites() {
+      const spriteNames = []
+      const targets = runtime.targets
+      for (let index = 1; index < targets.length; index++) {
+        const curTarget = targets[index].sprite
+        if (targets[index].isOriginal) {
+          const jsonOBJ = {
+            text: curTarget.name,
+            value: curTarget.name,
+          }
+          spriteNames.push(jsonOBJ)
+        }
+      }
+      if (spriteNames.length > 0) {
+        return spriteNames
+      } else {
+        return [{ text: "", value: 0 }] // Fallback
+      }
     }
   }
 
@@ -442,392 +1048,504 @@ let cameraSettings = {
   class ThreeMotion {
     getInfo() {
       return {
-        id: 'DragonianUSB3DMotion',
-        name: 'Motion 3D',
+        id: "DragonianUSB3DMotion",
+        name: "Motion 3D",
         color1: ext.colors.motion,
         blocks: [
           {
-            opcode: 'moveSteps',
+            opcode: "moveSteps",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'move [STEPS] steps in 3D',
+            text: "move [STEPS] steps in 3D",
             arguments: {
-              STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 }
-            }
+              STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 },
+            },
           },
           {
-            opcode: 'setPosition',
+            opcode: "setPosition",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set position to x:[X] y:[Y] z:[Z]',
+            text: "set position to x:[X] y:[Y] z:[Z]",
             arguments: {
               X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'changePosition',
+            opcode: "changePosition",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change position by x:[X] y:[Y] z:[Z]',
+            text: "change position by x:[X] y:[Y] z:[Z]",
             arguments: {
               X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setRotation',
+            opcode: "setRotation",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set rotation to r:[R] p:[P] y:[Y]',
+            text: "set rotation to r:[R] p:[P] y:[Y]",
             arguments: {
               R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'changeRotation',
+            opcode: "changeRotation",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change rotation by r:[R] p:[P] y:[Y]',
+            text: "change rotation by r:[R] p:[P] y:[Y]",
             arguments: {
               R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setPosMenu',
+            opcode: "setPosMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set pos [POSTYPES] to [NUMBER]',
+            text: "set pos [POSTYPES] to [NUMBER]",
             arguments: {
-              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: 'postypes', defaultValue: 'x' },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setRotMenu',
+            opcode: "setRotMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set rot [ROTTYPES] to [NUMBER]',
+            text: "set rot [ROTTYPES] to [NUMBER]",
             arguments: {
-              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: 'rottypes', defaultValue: 'r (roll)' },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'directionAround',
+            opcode: "directionAround",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'direction around [ROTTYPES]',
+            text: "direction around [ROTTYPES]",
             arguments: {
-              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: 'rottypes', defaultValue: 'r (roll)' }
-            }
+              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+            },
           },
           {
-            opcode: 'xPosition',
+            opcode: "xPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'x position'
+            text: "x position",
           },
           {
-            opcode: 'yPosition',
+            opcode: "yPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'y position'
+            text: "y position",
           },
           {
-            opcode: 'zPosition',
+            opcode: "zPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'z position'
+            text: "z position",
           },
           {
-            opcode: 'roll',
+            opcode: "roll",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'roll'
+            text: "roll",
           },
           {
-            opcode: 'pitch',
+            opcode: "pitch",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'pitch'
+            text: "pitch",
           },
           {
-            opcode: 'yaw',
+            opcode: "yaw",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'yaw'
+            text: "yaw",
           },
           {
-            opcode: 'positionArray',
+            opcode: "positionArray",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'position'
+            text: "position",
           },
           {
-            opcode: 'positionObject',
+            opcode: "positionObject",
             blockType: Scratch.BlockType.OBJECT,
-            text: 'position'
+            text: "position",
           },
           {
-            opcode: 'rotationArray',
+            opcode: "rotationArray",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'rotation'
+            text: "rotation",
           },
           {
-            opcode: 'rotationObject',
+            opcode: "rotationObject",
             blockType: Scratch.BlockType.OBJECT,
-            text: 'rotation'
+            text: "rotation",
           },
           {
-            opcode: 'turnDegrees',
+            opcode: "turnDegrees",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'turn [TURNDIRS] [NUM] degrees',
+            text: "turn [TURNDIRS] [NUM] degrees",
             arguments: {
-              TURNDIRS: { type: Scratch.ArgumentType.STRING, menu: 'turndirs', defaultValue: 'up' },
-              NUM: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
-          }
+              TURNDIRS: { type: Scratch.ArgumentType.STRING, menu: "turndirs", defaultValue: "up" },
+              NUM: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
+          },
         ],
         menus: {
           postypes: {
             acceptReporters: true,
-            items: ['x', 'y', 'z']
+            items: ["x", "y", "z"],
           },
           rottypes: {
             acceptReporters: true,
-            items: [
-              { text: "r (roll)", value: "r (roll)" },
-              { text: "p (pitch)", value: "p (pitch)" },
-              { text: "y (yaw)", value: "y (yaw)" }
-            ]
+            items: ["r (roll)", "p (pitch)", "y (yaw)"],
           },
           turndirs: {
             acceptReporters: true,
-            items: ['up', 'down', 'left', 'right']
-          }
-        }
-      };
+            items: ["up", "down", "left", "right"],
+          },
+        },
+      }
     }
-    
-    moveSteps(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const steps = Number(args.STEPS);
-      const sprite = spriteObjects[currentSprite];
-      
+
+    moveSteps(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const steps = Number(args.STEPS)
+      const obj = drawable[OBJECT]
+
       // Get the direction the sprite is facing (assuming -Z is forward)
-      const direction = new three.Vector3(0, 0, -1);
-      direction.applyQuaternion(sprite.quaternion);
-      direction.multiplyScalar(steps / 10); // Scale steps for better control
-      
+      const direction = new threejs.Vector3(0, 0, -1)
+      direction.applyQuaternion(obj.quaternion)
+      direction.multiplyScalar(steps / 10) // Scale steps for better control
+
       // Move the sprite in that direction
-      sprite.position.add(direction);
-      
-      refreshScene();
-      return "Moved steps";
+      target.setXY(target.x + direction.x, target.y + direction.y)
+      obj.position.z += direction.z
+      drawable[Z_POS] = obj.position.z
+
+      renderer[THREEJS_DIRTY] = true
+      return "Moved steps"
     }
-    
-    setPosition(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
-      
-      spriteObjects[currentSprite].position.set(x, y, z);
-      
-      refreshScene();
-      return "Position set";
+
+    setPosition(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      target.setXY(x, y)
+      drawable[OBJECT].position.z = z
+      drawable[Z_POS] = z
+
+      renderer[THREEJS_DIRTY] = true
+      return "Position set"
     }
-    
-    changePosition(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
-      
-      spriteObjects[currentSprite].position.x += x;
-      spriteObjects[currentSprite].position.y += y;
-      spriteObjects[currentSprite].position.z += z;
-      
-      refreshScene();
-      return "Position changed";
+
+    changePosition(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      target.setXY(target.x + x, target.y + y)
+      drawable[OBJECT].position.z += z
+      drawable[Z_POS] = drawable[OBJECT].position.z
+
+      renderer[THREEJS_DIRTY] = true
+      return "Position changed"
     }
-    
-    setRotation(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
-      const p = Number(args.P) * (Math.PI / 180);
-      const y = Number(args.Y) * (Math.PI / 180);
-      
-      // Set rotation using Euler angles
-      spriteObjects[currentSprite].rotation.set(p, y, r, 'YXZ');
-      
-      refreshScene();
-      return "Rotation set";
+
+    setRotation(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const r = Number(args.R)
+      const p = Number(args.P)
+      const y = Number(args.Y)
+
+      // Set roll (r) using Scratch direction
+      target.setDirection(90 - r)
+
+      // Set pitch and yaw directly
+      drawable[PITCH] = threejs.MathUtils.degToRad(p)
+      drawable[YAW] = threejs.MathUtils.degToRad(y)
+
+      updateSpriteAngle(drawable)
+      renderer[THREEJS_DIRTY] = true
+      return "Rotation set"
     }
-    
-    changeRotation(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
-      const p = Number(args.P) * (Math.PI / 180);
-      const y = Number(args.Y) * (Math.PI / 180);
-      
-      // Change rotation using Euler angles
-      spriteObjects[currentSprite].rotation.x += p;
-      spriteObjects[currentSprite].rotation.y += y;
-      spriteObjects[currentSprite].rotation.z += r;
-      
-      refreshScene();
-      return "Rotation changed";
+
+    changeRotation(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const r = Number(args.R)
+      const p = Number(args.P)
+      const y = Number(args.Y)
+
+      // Change roll (r) using Scratch direction
+      target.setDirection(target.direction - r)
+
+      // Change pitch and yaw directly
+      drawable[PITCH] = (drawable[PITCH] || 0) + threejs.MathUtils.degToRad(p)
+      drawable[YAW] = (drawable[YAW] || 0) + threejs.MathUtils.degToRad(y)
+
+      updateSpriteAngle(drawable)
+      renderer[THREEJS_DIRTY] = true
+      return "Rotation changed"
     }
-    
-    setPosMenu(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const posType = args.POSTYPES;
-      const value = Number(args.NUMBER);
-      
+
+    setPosMenu(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const posType = args.POSTYPES
+      const value = Number(args.NUMBER)
+
       switch (posType) {
-        case 'x':
-          spriteObjects[currentSprite].position.x = value;
-          break;
-        case 'y':
-          spriteObjects[currentSprite].position.y = value;
-          break;
-        case 'z':
-          spriteObjects[currentSprite].position.z = value;
-          break;
+        case "x":
+          target.setXY(value, target.y)
+          break
+        case "y":
+          target.setXY(target.x, value)
+          break
+        case "z":
+          drawable[OBJECT].position.z = value
+          drawable[Z_POS] = value
+          break
       }
-      
-      refreshScene();
-      return "Position set";
+
+      renderer[THREEJS_DIRTY] = true
+      return "Position set"
     }
-    
-    setRotMenu(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const rotType = args.ROTTYPES;
-      const value = Number(args.NUMBER) * (Math.PI / 180); // Convert to radians
-      
+
+    setRotMenu(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const rotType = args.ROTTYPES
+      const value = Number(args.NUMBER)
+
       switch (rotType) {
-        case 'r (roll)':
-          spriteObjects[currentSprite].rotation.z = value;
-          break;
-        case 'p (pitch)':
-          spriteObjects[currentSprite].rotation.x = value;
-          break;
-        case 'y (yaw)':
-          spriteObjects[currentSprite].rotation.y = value;
-          break;
+        case "r (roll)":
+          target.setDirection(90 - value)
+          break
+        case "p (pitch)":
+          drawable[PITCH] = threejs.MathUtils.degToRad(value)
+          break
+        case "y (yaw)":
+          drawable[YAW] = threejs.MathUtils.degToRad(value)
+          break
       }
-      
-      refreshScene();
-      return "Rotation set";
+
+      updateSpriteAngle(drawable)
+      renderer[THREEJS_DIRTY] = true
+      return "Rotation set"
     }
-    
-    directionAround(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      
-      const rotType = args.ROTTYPES;
-      
+
+    directionAround(args, util) {
+      if (!isInitialized) return 0
+
+      const target = util.target
+      if (!target || target.isStage) return 0
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 0
+
+      const rotType = args.ROTTYPES
+
       switch (rotType) {
-        case 'r (roll)':
-          return (spriteObjects[currentSprite].rotation.z * 180 / Math.PI).toFixed(2);
-        case 'p (pitch)':
-          return (spriteObjects[currentSprite].rotation.x * 180 / Math.PI).toFixed(2);
-        case 'y (yaw)':
-          return (spriteObjects[currentSprite].rotation.y * 180 / Math.PI).toFixed(2);
+        case "r (roll)":
+          return (90 - target.direction).toFixed(2)
+        case "p (pitch)":
+          return threejs.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
+        case "y (yaw)":
+          return threejs.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
       }
-      
-      return 0;
+
+      return 0
     }
-    
-    xPosition() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return spriteObjects[currentSprite].position.x.toFixed(2);
+
+    xPosition(args, util) {
+      const target = util.target
+      if (!target || target.isStage) return 0
+      return target.x.toFixed(2)
     }
-    
-    yPosition() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return spriteObjects[currentSprite].position.y.toFixed(2);
+
+    yPosition(args, util) {
+      const target = util.target
+      if (!target || target.isStage) return 0
+      return target.y.toFixed(2)
     }
-    
-    zPosition() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return spriteObjects[currentSprite].position.z.toFixed(2);
+
+    zPosition(args, util) {
+      if (!isInitialized) return 0
+
+      const target = util.target
+      if (!target || target.isStage) return 0
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 0
+
+      return drawable[OBJECT].position.z.toFixed(2)
     }
-    
-    roll() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return (spriteObjects[currentSprite].rotation.z * 180 / Math.PI).toFixed(2);
+
+    roll(args, util) {
+      const target = util.target
+      if (!target || target.isStage) return 0
+      return (90 - target.direction).toFixed(2)
     }
-    
-    pitch() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return (spriteObjects[currentSprite].rotation.x * 180 / Math.PI).toFixed(2);
+
+    pitch(args, util) {
+      if (!isInitialized) return 0
+
+      const target = util.target
+      if (!target || target.isStage) return 0
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 0
+
+      return threejs.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
     }
-    
-    yaw() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 0;
-      return (spriteObjects[currentSprite].rotation.y * 180 / Math.PI).toFixed(2);
+
+    yaw(args, util) {
+      if (!isInitialized) return 0
+
+      const target = util.target
+      if (!target || target.isStage) return 0
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 0
+
+      return threejs.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
     }
-    
-    positionArray() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([0, 0, 0]);
-      
-      const pos = spriteObjects[currentSprite].position;
-      return JSON.stringify([pos.x, pos.y, pos.z]);
+
+    positionArray(args, util) {
+      if (!isInitialized) return JSON.stringify([0, 0, 0])
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify([0, 0, 0])
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify([target.x, target.y, 0])
+
+      return JSON.stringify([target.x, target.y, drawable[OBJECT].position.z])
     }
-    
-    positionObject() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({x: 0, y: 0, z: 0});
-      
-      const pos = spriteObjects[currentSprite].position;
-      return JSON.stringify({x: pos.x, y: pos.y, z: pos.z});
-    }
-    
-    rotationArray() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([0, 0, 0]);
-      
-      const rot = spriteObjects[currentSprite].rotation;
-      return JSON.stringify([
-        rot.z * 180 / Math.PI, // roll
-        rot.x * 180 / Math.PI, // pitch
-        rot.y * 180 / Math.PI  // yaw
-      ]);
-    }
-    
-    rotationObject() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({roll: 0, pitch: 0, yaw: 0});
-      
-      const rot = spriteObjects[currentSprite].rotation;
+
+    positionObject(args, util) {
+      if (!isInitialized) return JSON.stringify({ x: 0, y: 0, z: 0 })
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify({ x: 0, y: 0, z: 0 })
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify({ x: target.x, y: target.y, z: 0 })
+
       return JSON.stringify({
-        roll: rot.z * 180 / Math.PI,
-        pitch: rot.x * 180 / Math.PI,
-        yaw: rot.y * 180 / Math.PI
-      });
+        x: target.x,
+        y: target.y,
+        z: drawable[OBJECT].position.z,
+      })
     }
-    
-    turnDegrees(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const turnDirection = args.TURNDIRS;
-      const degrees = Number(args.NUM);
-      const radians = degrees * (Math.PI / 180);
-      
+
+    rotationArray(args, util) {
+      if (!isInitialized) return JSON.stringify([0, 0, 0])
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify([0, 0, 0])
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify([90 - target.direction, 0, 0])
+
+      return JSON.stringify([
+        90 - target.direction, // roll
+        threejs.MathUtils.radToDeg(drawable[PITCH] || 0), // pitch
+        threejs.MathUtils.radToDeg(drawable[YAW] || 0), // yaw
+      ])
+    }
+
+    rotationObject(args, util) {
+      if (!isInitialized) return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 })
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 })
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify({ roll: 90 - target.direction, pitch: 0, yaw: 0 })
+
+      return JSON.stringify({
+        roll: 90 - target.direction,
+        pitch: threejs.MathUtils.radToDeg(drawable[PITCH] || 0),
+        yaw: threejs.MathUtils.radToDeg(drawable[YAW] || 0),
+      })
+    }
+
+    turnDegrees(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const turnDirection = args.TURNDIRS
+      const degrees = Number(args.NUM)
+
       switch (turnDirection) {
-        case 'up':
-          spriteObjects[currentSprite].rotation.x -= radians;
-          break;
-        case 'down':
-          spriteObjects[currentSprite].rotation.x += radians;
-          break;
-        case 'left':
-          spriteObjects[currentSprite].rotation.y += radians;
-          break;
-        case 'right':
-          spriteObjects[currentSprite].rotation.y -= radians;
-          break;
+        case "up":
+          drawable[PITCH] = (drawable[PITCH] || 0) - threejs.MathUtils.degToRad(degrees)
+          break
+        case "down":
+          drawable[PITCH] = (drawable[PITCH] || 0) + threejs.MathUtils.degToRad(degrees)
+          break
+        case "left":
+          drawable[YAW] = (drawable[YAW] || 0) + threejs.MathUtils.degToRad(degrees)
+          break
+        case "right":
+          drawable[YAW] = (drawable[YAW] || 0) - threejs.MathUtils.degToRad(degrees)
+          break
       }
-      
-      refreshScene();
-      return "Turned";
+
+      updateSpriteAngle(drawable)
+      renderer[THREEJS_DIRTY] = true
+      return "Turned"
     }
   }
 
@@ -853,363 +1571,608 @@ let cameraSettings = {
   class ThreeLooks {
     getInfo() {
       return {
-        id: 'DragonianUSB3DLooks',
-        name: 'Looks 3D',
+        id: "DragonianUSB3DLooks",
+        name: "Looks 3D",
         color1: ext.colors.looks,
         blocks: [
           {
-            opcode: 'setModel',
+            opcode: "setModel",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set model to [MODEL]',
+            text: "set model to [MODEL]",
             arguments: {
-              MODEL: { type: Scratch.ArgumentType.STRING, menu: 'models', defaultValue: "none" }
-            }
+              MODEL: { type: Scratch.ArgumentType.STRING, menu: "models", defaultValue: "none" },
+            },
           },
           {
-            opcode: 'addModel',
+            opcode: "addModel",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'add model as [MODELNAME] from url [MODELURL]',
+            text: "add model as [MODELNAME] from url [MODELURL]",
             arguments: {
               MODELNAME: { type: Scratch.ArgumentType.STRING, defaultValue: "new model" },
-              MODELURL: { type: Scratch.ArgumentType.STRING, defaultValue: "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/teapot.obj" }
-            }
+              MODELURL: {
+                type: Scratch.ArgumentType.STRING,
+                defaultValue:
+                  "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/teapot.obj",
+              },
+            },
           },
           {
-            opcode: 'existingModels',
+            opcode: "existingModels",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'existing models'
+            text: "existing models",
           },
           {
-            opcode: 'setTextureFilter',
+            opcode: "setTextureFilter",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set texture filter to [TEXTUREFILTER]',
+            text: "set texture filter to [TEXTUREFILTER]",
             arguments: {
-              TEXTUREFILTER: { type: Scratch.ArgumentType.STRING, menu: 'texturefilter', defaultValue: 'nearest' }
-            }
+              TEXTUREFILTER: { type: Scratch.ArgumentType.STRING, menu: "texturefilter", defaultValue: "nearest" },
+            },
           },
           {
-            opcode: 'showFaces',
+            opcode: "showFaces",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'show faces [SHOWFACES] of myself',
+            text: "show faces [SHOWFACES] of myself",
             arguments: {
-              SHOWFACES: { type: Scratch.ArgumentType.STRING, menu: 'showfaces', defaultValue: 'both' }
-            }
+              SHOWFACES: { type: Scratch.ArgumentType.STRING, menu: "showfaces", defaultValue: "both" },
+            },
           },
           {
-            opcode: 'setSpriteMode',
+            opcode: "setSpriteMode",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set sprite mode to [SPRITEMODE]',
+            text: "set sprite mode to [SPRITEMODE]",
             arguments: {
-              SPRITEMODE: { type: Scratch.ArgumentType.STRING, menu: 'spritemode', defaultValue: '2D' }
-            }
+              SPRITEMODE: { type: Scratch.ArgumentType.STRING, menu: "spritemode", defaultValue: "2D" },
+            },
           },
           {
-            opcode: 'setStretch',
+            opcode: "setStretch",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set stretch to x:[X] y:[Y] z:[Z]',
+            text: "set stretch to x:[X] y:[Y] z:[Z]",
             arguments: {
-              X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
-              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 }
-            }
+              X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+            },
           },
           {
-            opcode: 'changeStretch',
+            opcode: "changeStretch",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change stretch by x:[X] y:[Y] z:[Z]',
+            text: "change stretch by x:[X] y:[Y] z:[Z]",
             arguments: {
               X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setStretchMenu',
+            opcode: "setStretchMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set stretch [POSTYPES] to [NUMBER]',
+            text: "set stretch [POSTYPES] to [NUMBER]",
             arguments: {
-              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: 'postypes', defaultValue: 'x' },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1 }
-            }
+              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+            },
           },
           {
-            opcode: 'changeStretchMenu',
+            opcode: "changeStretchMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change stretch [POSTYPES] by [NUMBER]',
+            text: "change stretch [POSTYPES] by [NUMBER]",
             arguments: {
-              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: 'postypes', defaultValue: 'x' },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'stretchX',
+            opcode: "stretchX",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'stretch x'
+            text: "stretch x",
           },
           {
-            opcode: 'stretchY',
+            opcode: "stretchY",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'stretch y'
+            text: "stretch y",
           },
           {
-            opcode: 'stretchZ',
+            opcode: "stretchZ",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'stretch z'
+            text: "stretch z",
           },
           {
-            opcode: 'stretchesArray',
+            opcode: "stretchesArray",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'stretches'
+            text: "stretches",
           },
           {
-            opcode: 'stretchesObject',
+            opcode: "stretchesObject",
             blockType: Scratch.BlockType.OBJECT,
-            text: 'stretches'
-          }
+            text: "stretches",
+          },
+          {
+            opcode: "attachSprite",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "attach myself to [TARGET]",
+            arguments: {
+              TARGET: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "spriteMenu",
+              },
+            },
+          },
+          {
+            opcode: "detachSprite",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "detach myself",
+          },
+          {
+            opcode: "attachedSprite",
+            blockType: Scratch.BlockType.REPORTER,
+            text: "sprite I'm attached to",
+          },
         ],
         menus: {
           models: {
             acceptReporters: true,
-            items: () => models.length > 0 ? models : ["none"]
+            items: () => (models.length > 0 ? models.map((m) => m.name) : ["none"]),
           },
           texturefilter: {
             acceptReporters: true,
-            items: ['nearest', 'linear']
+            items: ["nearest", "linear"],
           },
           showfaces: {
             acceptReporters: true,
-            items: ['both', 'front', 'back']
+            items: ["both", "front", "back"],
           },
           spritemode: {
             acceptReporters: true,
-            items: ['2D', '3D']
+            items: ["2D", "3D"],
           },
           postypes: {
             acceptReporters: true,
-            items: ['x', 'y', 'z']
-          }
-        }
-      };
+            items: ["x", "y", "z"],
+          },
+          spriteMenu: {
+            acceptReporters: true,
+            items: "getSprites",
+          },
+        },
+      }
     }
-    
-    async setModel(args) { 
-      if (!isInitialized) return "Scene not initialized";
-      
-      const modelName = args.MODEL;
-      if (modelName === "none" || !modelObjects[modelName]) {
-        return "Model not found";
+
+    async setModel(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const modelName = args.MODEL
+      if (modelName === "none") {
+        return "Model not found"
       }
-      
-      // Remove current sprite
-      if (spriteObjects[currentSprite]) {
-        scene.remove(spriteObjects[currentSprite]);
+
+      // Find the model in the models array
+      const modelObj = models.find((m) => m.name === modelName)
+      if (!modelObj || !modelObjects[modelName]) {
+        return "Model not found"
       }
-      
+
+      // Remove current object
+      if (drawable[OBJECT]) {
+        scene.remove(drawable[OBJECT])
+      }
+
       // Clone the model and add it to the scene
-      const modelClone = modelObjects[modelName].clone();
-      scene.add(modelClone);
-      
-      // Update current sprite
-      spriteObjects[currentSprite] = modelClone;
-      
-      refreshScene();
-      return "Model set";
+      const modelClone = modelObjects[modelName].clone()
+      scene.add(modelClone)
+
+      // Update drawable object
+      drawable[OBJECT] = modelClone
+
+      // Update position and rotation
+      modelClone.position.x = target.x
+      modelClone.position.y = target.y
+      modelClone.position.z = drawable[Z_POS] || 0
+
+      updateSpriteAngle(drawable)
+      updateAttachment(drawable)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Model set"
     }
-    
-    async addModel(args) { 
-      if (!isInitialized) return "Scene not initialized";
-      
-      const modelName = args.MODELNAME;
-      const modelURL = args.MODELURL;
-      
+
+    async addModel(args) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const modelName = args.MODELNAME
+      const modelURL = args.MODELURL
+
+      // Determine model type from URL
+      let modelType = "obj" // Default
+      if (modelURL.toLowerCase().endsWith(".gltf")) {
+        modelType = "gltf"
+      } else if (modelURL.toLowerCase().endsWith(".glb")) {
+        modelType = "glb"
+      }
+
       try {
-        const model = await loadModel(modelName, modelURL);
-        
+        const model = await loadModel(modelName, modelURL, modelType)
+
         if (model) {
           // Store the model
-          modelObjects[modelName] = model;
-          
-          // Add to models array for menu
-          if (!models.includes(modelName)) {
-            models.push(modelName);
+          modelObjects[modelName] = model
+
+          // Add to models array as an object with name, type, and data properties
+          const modelObj = {
+            name: modelName,
+            type: modelType,
+            data: model,
           }
-          
-          return "Model added";
+
+          // Check if model already exists and update it if it does
+          const existingIndex = models.findIndex((m) => m.name === modelName)
+          if (existingIndex >= 0) {
+            models[existingIndex] = modelObj
+          } else {
+            models.push(modelObj)
+          }
+
+          return "Model added"
         } else {
-          return "Failed to load model";
+          return "Failed to load model"
         }
       } catch (error) {
-        console.error("Error adding model:", error);
-        return "Error loading model";
+        console.error("Error adding model:", error)
+        return "Error loading model"
       }
     }
-    
-    existingModels() { 
-      return JSON.stringify(models);
+
+    existingModels() {
+      return JSON.stringify(models.map((m) => m.name))
     }
-    
-    setTextureFilter(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const filter = args.TEXTUREFILTER;
-      const sprite = spriteObjects[currentSprite];
-      
-      // Apply texture filter to all materials in the sprite
-      sprite.traverse((child) => {
-        if (child.isMesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          
-          materials.forEach(material => {
-            if (material.map) {
-              material.map.minFilter = filter === 'nearest' ? three.NearestFilter : three.LinearFilter;
-              material.map.magFilter = filter === 'nearest' ? three.NearestFilter : three.LinearFilter;
-              material.map.needsUpdate = true;
-            }
-          });
+
+    setTextureFilter(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const filter = args.TEXTUREFILTER
+
+      // Set the filter type
+      drawable[TEX_FILTER] = filter === "nearest" ? threejs.NearestFilter : threejs.LinearMipmapLinearFilter
+
+      // Apply the filter to the material
+      updateMaterialForDrawable(drawable)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Texture filter set"
+    }
+
+    showFaces(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const faces = args.SHOWFACES
+
+      // Set the side mode
+      switch (faces) {
+        case "both":
+          drawable[SIDE_MODE] = threejs.DoubleSide
+          break
+        case "front":
+          drawable[SIDE_MODE] = threejs.FrontSide
+          break
+        case "back":
+          drawable[SIDE_MODE] = threejs.BackSide
+          break
+      }
+
+      // Apply the side mode to the material
+      updateMaterialForDrawable(drawable)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Face culling set"
+    }
+
+    setSpriteMode(args, util) {
+      if (!isInitialized) {
+        initialize3D()
+      }
+
+      const target = util.target
+      if (!target || target.isStage) return "Cannot set mode for stage"
+
+      const mode = args.SPRITEMODE
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+
+      if (mode === "3D") {
+        if (!drawable[IN_3D]) {
+          enable3DForDrawable(target.drawableID, drawable[MODE] || "flat")
         }
-      });
-      
-      refreshScene();
-      return "Texture filter set";
-    }
-    
-    showFaces(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const faces = args.SHOWFACES;
-      const sprite = spriteObjects[currentSprite];
-      
-      // Apply face culling to all materials in the sprite
-      sprite.traverse((child) => {
-        if (child.isMesh && child.material) {
-          const materials = Array.isArray(child.material) ? child.material : [child.material];
-          
-          materials.forEach(material => {
-            switch (faces) {
-              case 'both':
-                material.side = three.DoubleSide;
-                break;
-              case 'front':
-                material.side = three.FrontSide;
-                break;
-              case 'back':
-                material.side = three.BackSide;
-                break;
-            }
-            material.needsUpdate = true;
-          });
+      } else {
+        if (drawable[IN_3D]) {
+          disable3DForDrawable(target.drawableID)
         }
-      });
-      
-      refreshScene();
-      return "Face culling set";
-    }
-    
-    setSpriteMode(args) { 
-      // This would require more complex implementation to switch between 2D and 3D modes
-      // For now, we'll just return a message
-      return "Sprite mode setting in development";
-    }
-    
-    setStretch(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
-      
-      spriteObjects[currentSprite].scale.set(x, y, z);
-      
-      refreshScene();
-      return "Stretch set";
-    }
-    
-    changeStretch(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
-      
-      spriteObjects[currentSprite].scale.x += x;
-      spriteObjects[currentSprite].scale.y += y;
-      spriteObjects[currentSprite].scale.z += z;
-      
-      refreshScene();
-      return "Stretch changed";
-    }
-    
-    setStretchMenu(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const posType = args.POSTYPES;
-      const value = Number(args.NUMBER);
-      
-      switch (posType) {
-        case 'x':
-          spriteObjects[currentSprite].scale.x = value;
-          break;
-        case 'y':
-          spriteObjects[currentSprite].scale.y = value;
-          break;
-        case 'z':
-          spriteObjects[currentSprite].scale.z = value;
-          break;
       }
-      
-      refreshScene();
-      return "Stretch set";
+
+      return "Sprite mode set"
     }
-    
-    changeStretchMenu(args) { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return "No active sprite";
-      
-      const posType = args.POSTYPES;
-      const value = Number(args.NUMBER);
-      
+
+    setStretch(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      // Get the current scale from the sprite
+      const { direction, scale } = target._getRenderedDirectionAndScale()
+
+      // Set the stretch values (scale 100 to 1 for internal use)
+      drawable[OBJECT].scale.x = ((drawable[OBJECT]._sizeX || 100) / 100) * (x / 100)
+      drawable[OBJECT].scale.y = ((drawable[OBJECT]._sizeY || 100) / 100) * (y / 100)
+      drawable[OBJECT].scale.z = ((drawable[OBJECT]._sizeZ || 100) / 100) * (z / 100)
+
+      // Store the z stretch for future updates
+      drawable[Z_STRETCH] = z / 100
+
+      renderer[THREEJS_DIRTY] = true
+      return "Stretch set"
+    }
+
+    changeStretch(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      // Get the current scale
+      const currentX = (drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100
+      const currentY = (drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100
+      const currentZ = (drawable[Z_STRETCH] || 1) * 100
+
+      // Update the stretch values
+      this.setStretch(
+        {
+          X: currentX + x,
+          Y: currentY + y,
+          Z: currentZ + z,
+        },
+        util,
+      )
+
+      return "Stretch changed"
+    }
+
+    setStretchMenu(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const posType = args.POSTYPES
+      const value = Number(args.NUMBER)
+
+      // Get the current scale
+      const currentX = (drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100
+      const currentY = (drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100
+      const currentZ = (drawable[Z_STRETCH] || 1) * 100
+
       switch (posType) {
-        case 'x':
-          spriteObjects[currentSprite].scale.x += value;
-          break;
-        case 'y':
-          spriteObjects[currentSprite].scale.y += value;
-          break;
-        case 'z':
-          spriteObjects[currentSprite].scale.z += value;
-          break;
+        case "x":
+          this.setStretch({ X: value, Y: currentY, Z: currentZ }, util)
+          break
+        case "y":
+          this.setStretch({ X: currentX, Y: value, Z: currentZ }, util)
+          break
+        case "z":
+          this.setStretch({ X: currentX, Y: currentY, Z: value }, util)
+          break
       }
-      
-      refreshScene();
-      return "Stretch changed";
+
+      return "Stretch set"
     }
-    
-    stretchX() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
-      return spriteObjects[currentSprite].scale.x.toFixed(2);
+
+    changeStretchMenu(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const posType = args.POSTYPES
+      const value = Number(args.NUMBER)
+
+      // Get the current scale
+      const currentX = (drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100
+      const currentY = (drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100
+      const currentZ = (drawable[Z_STRETCH] || 1) * 100
+
+      switch (posType) {
+        case "x":
+          this.setStretch({ X: currentX + value, Y: currentY, Z: currentZ }, util)
+          break
+        case "y":
+          this.setStretch({ X: currentX, Y: currentY + value, Z: currentZ }, util)
+          break
+        case "z":
+          this.setStretch({ X: currentX, Y: currentY, Z: currentZ + value }, util)
+          break
+      }
+
+      return "Stretch changed"
     }
-    
-    stretchY() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
-      return spriteObjects[currentSprite].scale.y.toFixed(2);
+
+    stretchX(args, util) {
+      if (!isInitialized) return 100
+
+      const target = util.target
+      if (!target || target.isStage) return 100
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 100
+
+      return ((drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100).toFixed(2)
     }
-    
-    stretchZ() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return 1;
-      return spriteObjects[currentSprite].scale.z.toFixed(2);
+
+    stretchY(args, util) {
+      if (!isInitialized) return 100
+
+      const target = util.target
+      if (!target || target.isStage) return 100
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 100
+
+      return ((drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100).toFixed(2)
     }
-    
-    stretchesArray() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify([1, 1, 1]);
-      
-      const scale = spriteObjects[currentSprite].scale;
-      return JSON.stringify([scale.x, scale.y, scale.z]);
+
+    stretchZ(args, util) {
+      if (!isInitialized) return 100
+
+      const target = util.target
+      if (!target || target.isStage) return 100
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return 100
+
+      return ((drawable[Z_STRETCH] || 1) * 100).toFixed(2)
     }
-    
-    stretchesObject() { 
-      if (!isInitialized || !spriteObjects[currentSprite]) return JSON.stringify({x: 1, y: 1, z: 1});
-      
-      const scale = spriteObjects[currentSprite].scale;
-      return JSON.stringify({x: scale.x, y: scale.y, z: scale.z});
+
+    stretchesArray(args, util) {
+      if (!isInitialized) return JSON.stringify([100, 100, 100])
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify([100, 100, 100])
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify([100, 100, 100])
+
+      const x = (drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100
+      const y = (drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100
+      const z = (drawable[Z_STRETCH] || 1) * 100
+
+      return JSON.stringify([x, y, z])
+    }
+
+    stretchesObject(args, util) {
+      if (!isInitialized) return JSON.stringify({ x: 100, y: 100, z: 100 })
+
+      const target = util.target
+      if (!target || target.isStage) return JSON.stringify({ x: 100, y: 100, z: 100 })
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return JSON.stringify({ x: 100, y: 100, z: 100 })
+
+      const x = (drawable[OBJECT].scale.x / ((drawable[OBJECT]._sizeX || 100) / 100)) * 100
+      const y = (drawable[OBJECT].scale.y / ((drawable[OBJECT]._sizeY || 100) / 100)) * 100
+      const z = (drawable[Z_STRETCH] || 1) * 100
+
+      return JSON.stringify({ x: x, y: y, z: z })
+    }
+
+    attachSprite(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      const targetName = args.TARGET
+      const targetObj = runtime.getSpriteTargetByName(targetName)
+      if (!targetObj) return "Target sprite not found"
+
+      const targetDrawable = scratchRenderer._allDrawables[targetObj.drawableID]
+      if (drawable === targetDrawable) return "Cannot attach to self"
+
+      drawable[ATTACHED_TO] = targetDrawable
+      updateAttachment(drawable)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Sprite attached"
+    }
+
+    detachSprite(args, util) {
+      if (!isInitialized) return "Scene not initialized"
+
+      const target = util.target
+      if (!target || target.isStage) return "No active sprite"
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D]) return "Sprite not in 3D mode"
+
+      drawable[ATTACHED_TO] = null
+      updateAttachment(drawable)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Sprite detached"
+    }
+
+    attachedSprite(args, util) {
+      if (!isInitialized) return ""
+
+      const target = util.target
+      if (!target || target.isStage) return ""
+
+      const drawable = scratchRenderer._allDrawables[target.drawableID]
+      if (!drawable[IN_3D] || !drawable[ATTACHED_TO]) return ""
+
+      const attachedId = drawable[ATTACHED_TO].id
+      const attachedSprite = runtime.targets.find((target) => target.drawableID === attachedId)
+      if (!attachedSprite) return ""
+
+      return attachedSprite.sprite.name
+    }
+
+    getSprites() {
+      const spriteNames = []
+      const targets = runtime.targets
+      for (let index = 1; index < targets.length; index++) {
+        const curTarget = targets[index].sprite
+        if (targets[index].isOriginal) {
+          const jsonOBJ = {
+            text: curTarget.name,
+            value: curTarget.name,
+          }
+          spriteNames.push(jsonOBJ)
+        }
+      }
+      if (spriteNames.length > 0) {
+        return spriteNames
+      } else {
+        return [{ text: "", value: 0 }] // Fallback
+      }
     }
   }
 
@@ -1221,19 +2184,21 @@ let cameraSettings = {
   class ThreeEvents {
     getInfo() {
       return {
-        id: 'DragonianUSB3DEvents',
-        name: 'Events 3D',
+        id: "DragonianUSB3DEvents",
+        name: "Events 3D",
         color1: ext.colors.events,
         blocks: [
           {
-            opcode: 'temp',
+            opcode: "temp",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'temp'
-          }
-        ]
-      };
+            text: "temp",
+          },
+        ],
+      }
     }
-    temp() { return "Events in development"; }
+    temp() {
+      return "Events in development"
+    }
   }
 
   /* =======================================================================
@@ -1244,19 +2209,21 @@ let cameraSettings = {
   class ThreeControl {
     getInfo() {
       return {
-        id: 'DragonianUSB3DControl',
-        name: 'Control 3D',
+        id: "DragonianUSB3DControl",
+        name: "Control 3D",
         color1: ext.colors.control,
         blocks: [
           {
-            opcode: 'temp',
+            opcode: "temp",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'temp'
-          }
-        ]
-      };
+            text: "temp",
+          },
+        ],
+      }
     }
-    temp() { return "Control in development"; }
+    temp() {
+      return "Control in development"
+    }
   }
 
   /* =======================================================================
@@ -1292,670 +2259,892 @@ let cameraSettings = {
    *  - camera [CAMVIS]                  (new reporter block)
    * ======================================================================= */
   class ThreeCamera {
+    // Store camera-sprite bindings
+    #cameraBoundSprites = {}
+
     getInfo() {
       return {
-        id: 'DragonianUSB3DCamera',
-        name: 'Camera 3D',
+        id: "DragonianUSB3DCamera",
+        name: "Camera 3D",
         color1: ext.colors.camera,
         blocks: [
           {
-            opcode: 'createCamera',
+            opcode: "createCamera",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'create camera [CAMERA]',
+            text: "create camera [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, defaultValue: "current" },
+            },
           },
           {
-            opcode: 'deleteCamera',
+            opcode: "deleteCamera",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'delete camera [CAMERA]',
+            text: "delete camera [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'existingCameras',
+            opcode: "existingCameras",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'existing cameras'
+            text: "existing cameras",
           },
           {
-            opcode: 'focusCamera',
+            opcode: "focusCamera",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'focus on camera [CAMERA]',
+            text: "focus on camera [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'moveCameraSteps',
+            opcode: "moveCameraSteps",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'move camera [CAMERA] [STEPS] steps in 3D',
+            text: "move camera [CAMERA] [STEPS] steps in 3D",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
-              STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+              STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 },
+            },
           },
           {
-            opcode: 'setCameraPosition',
+            opcode: "setCameraPosition",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set camera position of [CAMERA] to x:[X] y:[Y] z:[Z]',
+            text: "set camera position of [CAMERA] to x:[X] y:[Y] z:[Z]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
               X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'changeCameraPosition',
+            opcode: "changeCameraPosition",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change camera position of [CAMERA] by x:[X] y:[Y] z:[Z]',
+            text: "change camera position of [CAMERA] by x:[X] y:[Y] z:[Z]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
               X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setCameraRotation',
+            opcode: "setCameraRotation",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set camera rotation of [CAMERA] to r:[R] p:[P] y:[Y]',
+            text: "set camera rotation of [CAMERA] to r:[R] p:[P] y:[Y]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
               R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'changeCameraRotation',
+            opcode: "changeCameraRotation",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'change camera rotation of [CAMERA] by r:[R] p:[P] y:[Y]',
+            text: "change camera rotation of [CAMERA] by r:[R] p:[P] y:[Y]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
               R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
               P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
-              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setCameraPosMenu',
+            opcode: "setCameraPosMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set camera pos [POSTYPES] of [CAMERA] to [NUMBER]',
+            text: "set camera pos [POSTYPES] of [CAMERA] to [NUMBER]",
             arguments: {
-              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: 'postypes', defaultValue: 'x' },
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'setCameraRotMenu',
+            opcode: "setCameraRotMenu",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set camera rot [ROTTYPES] of [CAMERA] to [NUMBER]',
+            text: "set camera rot [ROTTYPES] of [CAMERA] to [NUMBER]",
             arguments: {
-              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: 'rottypes', defaultValue: 'r (roll)' },
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 }
-            }
+              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+            },
           },
           {
-            opcode: 'cameraDirectionAround',
+            opcode: "cameraDirectionAround",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera direction around [ROTTYPES] of [CAMERA]',
+            text: "camera direction around [ROTTYPES] of [CAMERA]",
             arguments: {
-              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: 'rottypes', defaultValue: 'r (roll)' },
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraXPosition',
+            opcode: "cameraXPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera x position of [CAMERA]',
+            text: "camera x position of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraYPosition',
+            opcode: "cameraYPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera y position of [CAMERA]',
+            text: "camera y position of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraZPosition',
+            opcode: "cameraZPosition",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera z position of [CAMERA]',
+            text: "camera z position of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraRoll',
+            opcode: "cameraRoll",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera roll of [CAMERA]',
+            text: "camera roll of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraPitch',
+            opcode: "cameraPitch",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera pitch of [CAMERA]',
+            text: "camera pitch of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraYaw',
+            opcode: "cameraYaw",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera yaw of [CAMERA]',
+            text: "camera yaw of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraPositionArray',
+            opcode: "cameraPositionArray",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'camera position of [CAMERA]',
+            text: "camera position of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraPositionObject',
+            opcode: "cameraPositionObject",
             blockType: Scratch.BlockType.OBJECT,
-            text: 'camera position of [CAMERA]',
+            text: "camera position of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraRotationArray',
+            opcode: "cameraRotationArray",
             blockType: Scratch.BlockType.ARRAY,
-            text: 'camera rotation of [CAMERA]',
+            text: "camera rotation of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'cameraRotationObject',
+            opcode: "cameraRotationObject",
             blockType: Scratch.BlockType.OBJECT,
-            text: 'camera rotation of [CAMERA]',
+            text: "camera rotation of [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'bindCamera',
+            opcode: "bindCamera",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'bind camera [CAMERA] to [SPRITE]',
+            text: "attach camera [CAMERA] to [SPRITE]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" },
-              SPRITE: { type: Scratch.ArgumentType.STRING }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+              SPRITE: { type: Scratch.ArgumentType.STRING, menu: "spriteMenu" },
+            },
           },
           {
-            opcode: 'unbindCamera',
+            opcode: "unbindCamera",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'unbind camera [CAMERA]',
+            text: "detach camera [CAMERA]",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'bindedSprite',
+            opcode: "bindedSprite",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'binded sprite of camera [CAMERA]',
+            text: "sprite camera [CAMERA] is attached to",
             arguments: {
-              CAMERA: { type: Scratch.ArgumentType.STRING, menu: 'cameras', defaultValue: "current" }
-            }
+              CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+            },
           },
           {
-            opcode: 'setCameraVis',
+            opcode: "setCameraVis",
             blockType: Scratch.BlockType.COMMAND,
-            text: 'set camera [CAMVIS] to [NUMBER]',
+            text: "set camera [CAMVIS] to [NUMBER]",
             arguments: {
-              CAMVIS: { type: Scratch.ArgumentType.STRING, menu: 'camvis' },
-              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 90 }
-            }
+              CAMVIS: { type: Scratch.ArgumentType.STRING, menu: "camvis" },
+              NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 90 },
+            },
           },
           {
-            opcode: 'getCameraVis',
+            opcode: "getCameraVis",
             blockType: Scratch.BlockType.REPORTER,
-            text: 'camera [CAMVIS]',
+            text: "camera [CAMVIS]",
             arguments: {
-              CAMVIS: { type: Scratch.ArgumentType.STRING, menu: 'camvis', defaultValue: 'FOV' }
-            }
-          }
+              CAMVIS: { type: Scratch.ArgumentType.STRING, menu: "camvis", defaultValue: "FOV" },
+            },
+          },
         ],
         menus: {
           cameras: {
             acceptReporters: true,
             items: () => {
               // Always have "current" as the first option.
-              let camList = ["current"];
-              camList = camList.concat(cameras.filter(c => c !== "current"));
-              return camList.length > 0 ? camList : ["none"];
-            }
+              let camList = ["current"]
+              camList = camList.concat(cameras.filter((c) => c !== "current"))
+              return camList.length > 0 ? camList : ["none"]
+            },
           },
           postypes: {
             acceptReporters: true,
-            items: ['x', 'y', 'z']
+            items: ["x", "y", "z"],
           },
           rottypes: {
             acceptReporters: true,
-            items: [
-              { text: "r (roll)", value: "r (roll)" },
-              { text: "p (pitch)", value: "p (pitch)" },
-              { text: "y (yaw)", value: "y (yaw)" }
-            ]
+            items: ["r (roll)", "p (pitch)", "y (yaw)"],
           },
           camvis: {
             acceptReporters: true,
-            items: [
-              "FOV",
-              { text: "Minimum render distance", value: "minrender" },
-              { text: "Maximum render distance", value: "maxrender" }
-            ]
+            items: ["FOV", "Minimum render distance", "Maximum render distance"],
           },
           turndirs: {
             acceptReporters: true,
-            items: ['up', 'down', 'left', 'right']
-          }
-        }
-      };
+            items: ["up", "down", "left", "right"],
+          },
+          spriteMenu: {
+            acceptReporters: true,
+            items: () => {
+              let spriteList = ["myself"]
+              spriteList = spriteList.concat(getSprites())
+              return spriteList.length > 1 ? spriteList : ["myself"]
+            },
+          },
+        },
+      }
     }
+
     createCamera(args) {
+      if (!isInitialized) {
+        initialize3D()
+      }
+
+      if (!isInitialized) return "Scene initialization failed"
+
       // Create a new camera in the camerasObj
-      const cameraName = args.CAMERA;
+      const cameraName = args.CAMERA
       if (!camerasObj[cameraName]) {
         // Create a new perspective camera with default settings
-        camerasObj[cameraName] = new three.PerspectiveCamera(
+        camerasObj[cameraName] = new threejs.PerspectiveCamera(
           cameraSettings.FOV,
-          (vm.runtime.stageWidth || 480) / (vm.runtime.stageHeight || 360),
+          (runtime.stageWidth || 480) / (runtime.stageHeight || 360),
           cameraSettings.minrender,
-          cameraSettings.maxrender
-        );
-        camerasObj[cameraName].position.set(0, 0, 200);
+          cameraSettings.maxrender,
+        )
+        camerasObj[cameraName].position.set(0, 0, 200)
         // Add to the cameras array for menu tracking
-        cameras.push(cameraName);
+        cameras.push(cameraName)
       }
-      return "Camera created";
+      return "Camera created"
     }
 
     deleteCamera(args) {
-      const cameraName = args.CAMERA;
+      if (!isInitialized) return "Scene not initialized"
+
+      const cameraName = args.CAMERA
       // Don't delete the current camera if it's active
       if (cameraName === "current" || activeCamera === camerasObj[cameraName]) {
-        return "Cannot delete active camera";
+        return "Cannot delete active camera"
       }
 
       if (camerasObj[cameraName]) {
         // Remove from camerasObj
-        delete camerasObj[cameraName];
+        delete camerasObj[cameraName]
         // Remove from cameras array
-        cameras = cameras.filter(c => c !== cameraName);
+        cameras = cameras.filter((c) => c !== cameraName)
       }
-      return "Camera deleted";
+      return "Camera deleted"
     }
 
     focusCamera(args) {
-      const cameraName = args.CAMERA;
+      if (!isInitialized) return "Scene not initialized"
+
+      const cameraName = args.CAMERA
+      if (cameraName === "current") {
+        // Just refresh the scene with the current active camera
+        refreshScene()
+        return "Camera focused"
+      }
+
       if (camerasObj[cameraName]) {
         // Switch to this camera
-        switchCamera(cameraName);
-        activeCamera = camerasObj[cameraName];
-        currentCamera = cameraName;
-        refreshScene();
-        return "Camera focused";
+        switchCamera(cameraName)
+        renderer[THREEJS_DIRTY] = true
+        return "Camera focused"
       }
-      return "Camera not found";
+      return "Camera not found"
     }
 
     moveCameraSteps(args) {
-      const cameraName = args.CAMERA;
-      const steps = Number(args.STEPS);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        const camera = camerasObj[cameraName];
-        // Move camera forward in its current direction
-        const direction = new three.Vector3(0, 0, -1);
-        direction.applyQuaternion(camera.quaternion);
-        direction.multiplyScalar(steps / 10); // Scale steps for better control
-        camera.position.add(direction);
-        refreshScene();
-        return "Camera moved";
+      const cameraName = args.CAMERA
+      const steps = Number(args.STEPS)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      // Move camera forward in its current direction
+      const direction = new threejs.Vector3(0, 0, -1)
+      direction.applyQuaternion(camera.quaternion)
+      direction.multiplyScalar(steps / 10) // Scale steps for better control
+      camera.position.add(direction)
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera moved"
     }
 
     setCameraPosition(args) {
-      const cameraName = args.CAMERA;
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        camerasObj[cameraName].position.set(x, y, z);
-        refreshScene();
-        return "Camera position set";
+      const cameraName = args.CAMERA
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      camera.position.set(x, y, z)
+      renderer[THREEJS_DIRTY] = true
+      return "Camera position set"
     }
 
     changeCameraPosition(args) {
-      const cameraName = args.CAMERA;
-      const x = Number(args.X);
-      const y = Number(args.Y);
-      const z = Number(args.Z);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        camerasObj[cameraName].position.x += x;
-        camerasObj[cameraName].position.y += y;
-        camerasObj[cameraName].position.z += z;
-        refreshScene();
-        return "Camera position changed";
+      const cameraName = args.CAMERA
+      const x = Number(args.X)
+      const y = Number(args.Y)
+      const z = Number(args.Z)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      camera.position.x += x
+      camera.position.y += y
+      camera.position.z += z
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera position changed"
     }
 
     setCameraRotation(args) {
-      const cameraName = args.CAMERA;
-      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
-      const p = Number(args.P) * (Math.PI / 180);
-      const y = Number(args.Y) * (Math.PI / 180);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        // Set rotation using Euler angles
-        camerasObj[cameraName].rotation.set(p, y, r, 'YXZ');
-        refreshScene();
-        return "Camera rotation set";
+      const cameraName = args.CAMERA
+      const r = Number(args.R) * (Math.PI / 180) // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180)
+      const y = Number(args.Y) * (Math.PI / 180)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      // Set rotation using Euler angles with YXZ order (yaw, pitch, roll)
+      camera.rotation.set(p, y, r, "YXZ")
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera rotation set"
     }
 
     changeCameraRotation(args) {
-      const cameraName = args.CAMERA;
-      const r = Number(args.R) * (Math.PI / 180); // Convert to radians
-      const p = Number(args.P) * (Math.PI / 180);
-      const y = Number(args.Y) * (Math.PI / 180);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        // Change rotation using Euler angles
-        camerasObj[cameraName].rotation.x += p;
-        camerasObj[cameraName].rotation.y += y;
-        camerasObj[cameraName].rotation.z += r;
-        refreshScene();
-        return "Camera rotation changed";
+      const cameraName = args.CAMERA
+      const r = Number(args.R) * (Math.PI / 180) // Convert to radians
+      const p = Number(args.P) * (Math.PI / 180)
+      const y = Number(args.Y) * (Math.PI / 180)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      // Change rotation using Euler angles
+      camera.rotation.x += p
+      camera.rotation.y += y
+      camera.rotation.z += r
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera rotation changed"
     }
 
     setCameraPosMenu(args) {
-      const cameraName = args.CAMERA;
-      const posType = args.POSTYPES;
-      const value = Number(args.NUMBER);
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        switch (posType) {
-          case 'x':
-            camerasObj[cameraName].position.x = value;
-            break;
-          case 'y':
-            camerasObj[cameraName].position.y = value;
-            break;
-          case 'z':
-            camerasObj[cameraName].position.z = value;
-            break;
-        }
-        refreshScene();
-        return "Camera position set";
+      const cameraName = args.CAMERA
+      const posType = args.POSTYPES
+      const value = Number(args.NUMBER)
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      switch (posType) {
+        case "x":
+          camera.position.x = value
+          break
+        case "y":
+          camera.position.y = value
+          break
+        case "z":
+          camera.position.z = value
+          break
+      }
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera position set"
     }
 
     setCameraRotMenu(args) {
-      const cameraName = args.CAMERA;
-      const rotType = args.ROTTYPES;
-      const value = Number(args.NUMBER) * (Math.PI / 180); // Convert to radians
+      if (!isInitialized) return "Scene not initialized"
 
-      if (camerasObj[cameraName]) {
-        switch (rotType) {
-          case 'r (roll)':
-            camerasObj[cameraName].rotation.z = value;
-            break;
-          case 'p (pitch)':
-            camerasObj[cameraName].rotation.x = value;
-            break;
-          case 'y (yaw)':
-            camerasObj[cameraName].rotation.y = value;
-            break;
-        }
-        refreshScene();
-        return "Camera rotation set";
+      const cameraName = args.CAMERA
+      const rotType = args.ROTTYPES
+      const value = Number(args.NUMBER) * (Math.PI / 180) // Convert to radians
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      return "Camera not found";
+
+      switch (rotType) {
+        case "r (roll)":
+          camera.rotation.z = value
+          break
+        case "p (pitch)":
+          camera.rotation.x = value
+          break
+        case "y (yaw)":
+          camera.rotation.y = value
+          break
+      }
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera rotation set"
     }
 
     cameraDirectionAround(args) {
-      const cameraName = args.CAMERA;
-      const rotType = args.ROTTYPES;
+      if (!isInitialized) return 0
 
-      if (camerasObj[cameraName]) {
-        switch (rotType) {
-          case 'r (roll)':
-            return (camerasObj[cameraName].rotation.z * 180 / Math.PI).toFixed(2);
-          case 'p (pitch)':
-            return (camerasObj[cameraName].rotation.x * 180 / Math.PI).toFixed(2);
-          case 'y (yaw)':
-            return (camerasObj[cameraName].rotation.y * 180 / Math.PI).toFixed(2);
-        }
+      const cameraName = args.CAMERA
+      const rotType = args.ROTTYPES
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      switch (rotType) {
+        case "r (roll)":
+          return ((camera.rotation.z * 180) / Math.PI).toFixed(2)
+        case "p (pitch)":
+          return ((camera.rotation.x * 180) / Math.PI).toFixed(2)
+        case "y (yaw)":
+          return ((camera.rotation.y * 180) / Math.PI).toFixed(2)
+      }
+
+      return 0
     }
 
     cameraXPosition(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return camerasObj[cameraName].position.x.toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return camera.position.x.toFixed(2)
     }
 
     cameraYPosition(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return camerasObj[cameraName].position.y.toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return camera.position.y.toFixed(2)
     }
 
     cameraZPosition(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return camerasObj[cameraName].position.z.toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return camera.position.z.toFixed(2)
     }
 
     cameraRoll(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return (camerasObj[cameraName].rotation.z * 180 / Math.PI).toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return ((camera.rotation.z * 180) / Math.PI).toFixed(2)
     }
 
     cameraPitch(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return (camerasObj[cameraName].rotation.x * 180 / Math.PI).toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return ((camera.rotation.x * 180) / Math.PI).toFixed(2)
     }
 
     cameraYaw(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        return (camerasObj[cameraName].rotation.y * 180 / Math.PI).toFixed(2);
+      if (!isInitialized) return 0
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return 0
       }
-      return 0;
+
+      return ((camera.rotation.y * 180) / Math.PI).toFixed(2)
     }
 
     cameraPositionArray(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        const pos = camerasObj[cameraName].position;
-        return JSON.stringify([pos.x, pos.y, pos.z]);
+      if (!isInitialized) return JSON.stringify([0, 0, 0])
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return JSON.stringify([0, 0, 0])
       }
-      return JSON.stringify([0, 0, 0]);
+
+      const pos = camera.position
+      return JSON.stringify([pos.x, pos.y, pos.z])
     }
 
     cameraPositionObject(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        const pos = camerasObj[cameraName].position;
-        return JSON.stringify({ x: pos.x, y: pos.y, z: pos.z });
+      if (!isInitialized) return JSON.stringify({ x: 0, y: 0, z: 0 })
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return JSON.stringify({ x: 0, y: 0, z: 0 })
       }
-      return JSON.stringify({ x: 0, y: 0, z: 0 });
+
+      const pos = camera.position
+      return JSON.stringify({ x: pos.x, y: pos.y, z: pos.z })
     }
 
     cameraRotationArray(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        const rot = camerasObj[cameraName].rotation;
-        // Convert to degrees for easier understanding
-        return JSON.stringify([
-          rot.z * 180 / Math.PI, // roll
-          rot.x * 180 / Math.PI, // pitch
-          rot.y * 180 / Math.PI  // yaw
-        ]);
+      if (!isInitialized) return JSON.stringify([0, 0, 0])
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return JSON.stringify([0, 0, 0])
       }
-      return JSON.stringify([0, 0, 0]);
+
+      const rot = camera.rotation
+      // Convert to degrees for easier understanding
+      return JSON.stringify([
+        (rot.z * 180) / Math.PI, // roll
+        (rot.x * 180) / Math.PI, // pitch
+        (rot.y * 180) / Math.PI, // yaw
+      ])
     }
 
     cameraRotationObject(args) {
-      const cameraName = args.CAMERA;
-      if (camerasObj[cameraName]) {
-        const rot = camerasObj[cameraName].rotation;
-        // Convert to degrees for easier understanding
-        return JSON.stringify({
-          roll: rot.z * 180 / Math.PI,
-          pitch: rot.x * 180 / Math.PI,
-          yaw: rot.y * 180 / Math.PI
-        });
+      if (!isInitialized) return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 })
+
+      const cameraName = args.CAMERA
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 })
       }
-      return JSON.stringify({ roll: 0, pitch: 0, yaw: 0 });
+
+      const rot = camera.rotation
+      // Convert to degrees for easier understanding
+      return JSON.stringify({
+        roll: (rot.z * 180) / Math.PI,
+        pitch: (rot.x * 180) / Math.PI,
+        yaw: (rot.y * 180) / Math.PI,
+      })
     }
 
-    // Store camera-sprite bindings :P
-    #cameraBoundSprites = {};
-
     bindCamera(args) {
-      const cameraName = args.CAMERA;
-      const spriteName = args.SPRITE;
-      
-      if (!camerasObj[cameraName]) {
-        return "Camera not found";
+      if (!isInitialized) return "Scene not initialized"
+
+      const cameraName = args.CAMERA
+      const spriteName = args.SPRITE
+
+      let camera
+      if (cameraName === "current") {
+        camera = activeCamera
+      } else if (camerasObj[cameraName]) {
+        camera = camerasObj[cameraName]
+      } else {
+        return "Camera not found"
       }
-      
-      if (!spriteObjects[spriteName]) {
-        return "Sprite not found";
+
+      const targetObj = runtime.getSpriteTargetByName(spriteName)
+      if (!targetObj) {
+        return "Sprite not found"
       }
-      
+
       // Store the binding
-      this.#cameraBoundSprites[cameraName] = spriteName;
-      
-      // Position the camera relative to the sprite
-      const sprite = spriteObjects[spriteName];
-      const camera = camerasObj[cameraName];
-      
+      this.#cameraBoundSprites[cameraName === "current" ? currentCamera : cameraName] = spriteName
+
       // Position the camera behind and slightly above the sprite
-      camera.position.set(
-        sprite.position.x,
-        sprite.position.y + 2,
-        sprite.position.z + 5
-      );
-      
+      camera.position.set(targetObj.x, targetObj.y + 50, (targetObj.z || 0) + 200)
+
       // Look at the sprite
-      camera.lookAt(sprite.position);
-      
-      refreshScene();
-      return "Camera bound to sprite";
+      camera.lookAt(new threejs.Vector3(targetObj.x, targetObj.y, targetObj.z || 0))
+
+      renderer[THREEJS_DIRTY] = true
+      return "Camera attached to sprite"
     }
 
     unbindCamera(args) {
-      const cameraName = args.CAMERA;
-      
-      if (this.#cameraBoundSprites[cameraName]) {
-        delete this.#cameraBoundSprites[cameraName];
-        refreshScene();
-        return "Camera unbound";
+      if (!isInitialized) return "Scene not initialized"
+
+      const cameraName = args.CAMERA
+      const camKey = cameraName === "current" ? currentCamera : cameraName
+
+      if (this.#cameraBoundSprites[camKey]) {
+        delete this.#cameraBoundSprites[camKey]
+        renderer[THREEJS_DIRTY] = true
+        return "Camera detached"
       }
-      
-      return "Camera not bound";
+
+      return "Camera not bound"
     }
 
     bindedSprite(args) {
-      const cameraName = args.CAMERA;
-      return this.#cameraBoundSprites[cameraName] || "none";
+      if (!isInitialized) return ""
+
+      const cameraName = args.CAMERA
+      const camKey = cameraName === "current" ? currentCamera : cameraName
+
+      return this.#cameraBoundSprites[camKey] || ""
     }
 
     existingCameras() {
-      return JSON.stringify(cameras);
+      return JSON.stringify(cameras)
     }
 
     setCameraVis(args) {
-      let visType = args.CAMVIS;
-      let value = Number(args.NUMBER);
+      if (!isInitialized) return "Scene not initialized"
+
+      let visType = args.CAMVIS
+      const value = Number(args.NUMBER)
+
+      // Handle dropdown special characters
+      if (visType === "Minimum render distance") {
+        visType = "minrender"
+      } else if (visType === "Maximum render distance") {
+        visType = "maxrender"
+      }
 
       switch (visType) {
-        case 'FOV':
-          cameraSettings.FOV = value;
+        case "FOV":
+          cameraSettings.FOV = value
           // Update all perspective cameras
-          Object.values(camerasObj).forEach(camera => {
+          Object.values(camerasObj).forEach((camera) => {
             if (camera.isPerspectiveCamera) {
-              camera.fov = value;
-              camera.updateProjectionMatrix();
+              camera.fov = value
+              camera.updateProjectionMatrix()
             }
-          });
-          break;
-        case 'minrender':
-          cameraSettings.minrender = value;
+          })
+          break
+        case "minrender":
+          cameraSettings.minrender = value
           // Update all cameras
-          Object.values(camerasObj).forEach(camera => {
-            camera.near = value;
-            camera.updateProjectionMatrix();
-          });
-          break;
-        case 'maxrender':
-          cameraSettings.maxrender = value;
+          Object.values(camerasObj).forEach((camera) => {
+            camera.near = value
+            camera.updateProjectionMatrix()
+          })
+          break
+        case "maxrender":
+          cameraSettings.maxrender = value
           // Update all cameras
-          Object.values(camerasObj).forEach(camera => {
-            camera.far = value;
-            camera.updateProjectionMatrix();
-          });
-          break;
+          Object.values(camerasObj).forEach((camera) => {
+            camera.far = value
+            camera.updateProjectionMatrix()
+          })
+          break
       }
-      refreshScene();
-      return "Camera settings updated";
+      renderer[THREEJS_DIRTY] = true
+      return "Camera settings updated"
     }
 
     getCameraVis(args) {
-      let visType = args.CAMVIS;
+      if (!isInitialized) return 0
+
+      let visType = args.CAMVIS
+
+      // Handle dropdown special characters
+      if (visType === "Minimum render distance") {
+        visType = "minrender"
+      } else if (visType === "Maximum render distance") {
+        visType = "maxrender"
+      }
+
       switch (visType) {
-        case 'FOV':
-          return cameraSettings.FOV;
-        case 'minrender':
-          return cameraSettings.minrender;
-        case 'maxrender':
-          return cameraSettings.maxrender;
+        case "FOV":
+          return cameraSettings.FOV
+        case "minrender":
+          return cameraSettings.minrender
+        case "maxrender":
+          return cameraSettings.maxrender
         default:
-          return cameraSettings.FOV;
+          return cameraSettings.FOV
+      }
+    }
+
+    getSprites() {
+      const spriteNames = []
+      const targets = runtime.targets
+      for (let index = 1; index < targets.length; index++) {
+        const curTarget = targets[index].sprite
+        if (targets[index].isOriginal) {
+          const jsonOBJ = {
+            text: curTarget.name,
+            value: curTarget.name,
+          }
+          spriteNames.push(jsonOBJ)
+        }
+      }
+      if (spriteNames.length > 0) {
+        return spriteNames
+      } else {
+        return [{ text: "", value: 0 }] // Fallback
       }
     }
   }
@@ -1965,26 +3154,27 @@ let cameraSettings = {
    * Order: Three, ThreeMotion, ThreeLooks, ThreeEvents, ThreeControl, ThreeCamera
    * =======================================================================
    */
-  Scratch.extensions.register(new Three());
-  Scratch.extensions.register(new ThreeMotion());
-  Scratch.extensions.register(new ThreeLooks());
-  Scratch.extensions.register(new ThreeEvents());
-  Scratch.extensions.register(new ThreeControl());
-  Scratch.extensions.register(new ThreeCamera());
+  Scratch.extensions.register(new Three())
+  Scratch.extensions.register(new ThreeMotion())
+  Scratch.extensions.register(new ThreeLooks())
+  Scratch.extensions.register(new ThreeEvents())
+  Scratch.extensions.register(new ThreeControl())
+  Scratch.extensions.register(new ThreeCamera())
 
-  // Attach to Scratch VM's BEFORE_EXECUTE event if its possible
-  if (vm.runtime) {
-    vm.runtime.on('BEFORE_EXECUTE', refreshScene);
-    console.log("Attached refreshScene to BEFORE_EXECUTE event");
+  // Attach to Scratch VM's BEFORE_EXECUTE event if available
+  if (runtime) {
+    runtime.on("BEFORE_EXECUTE", refreshScene)
+    console.log("Attached refreshScene to BEFORE_EXECUTE event")
   } else {
-    // If VM isn't available right off the bat, try again when the extension gets used
+    // If VM isn't available immediately, try again when the extension is first used
     const checkForVM = setInterval(() => {
-      if (vm.runtime) {
-        vm.runtime.on('BEFORE_EXECUTE', refreshScene);
-        console.log("Attached refreshScene to BEFORE_EXECUTE event (delayed)");
-        clearInterval(checkForVM);
+      if (runtime) {
+        runtime.on("BEFORE_EXECUTE", refreshScene)
+        console.log("Attached refreshScene to BEFORE_EXECUTE event (delayed)")
+        clearInterval(checkForVM)
       }
-    }, 1000);
+    }, 1000)
   }
-
+  }
 })(Scratch);
+
