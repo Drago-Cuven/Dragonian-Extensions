@@ -7,7 +7,6 @@
  **/
 
 /*
-Currently broken.
 Errors:
 
 TypeError: Failed to resolve module specifier "three". Relative references must start with either "/", "./", or "../".
