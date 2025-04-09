@@ -16,7 +16,7 @@
         threejs: "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
         OBJLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/OBJLoader.js",
         GLTFLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/GLTFLoader.js",
-      }
+      };
 
     const models = []
     const cameras = []
@@ -26,16 +26,16 @@
         FOV: 90,
         minrender: 0.1,
         maxrender: 1000,
-      }
+      };
 
-      let scene = null
-      let renderer = null
-      let camerasObj = {}
-      let activeCamera = null
-      let isInitialized = false
-      const currentSprite = null
-      const spriteObjects = {}
-      const modelObjects = {}
+      let scene = null;
+      let renderer = null;
+      let camerasObj = {};
+      let activeCamera = null;
+      let isInitialized = false;
+      const currentSprite = null;
+      const spriteObjects = {};
+      const modelObjects = {};
 
       const vm = Scratch.vm
       const runtime = vm.runtime

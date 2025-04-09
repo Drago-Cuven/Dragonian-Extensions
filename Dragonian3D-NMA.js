@@ -13,7 +13,7 @@
 
   const {Cast, BlockType, ArgumentType, vm} = Scratch,
   {runtime} = vm;
-  const scratchRenderer = runtime.renderer
+  const scratchRenderer = runtime.renderer;
 
   const extcolors = {
     Three: ["#0000ff", "#0000ff", "#0000ff"], 
@@ -31,8 +31,7 @@
 };
 
   const extimages = {};
-   
-  const cameras = [];
+  const extsounds = {};
 
   // Import map only for core Three.js
   const importMap = document.createElement('script');
@@ -76,32 +75,161 @@
 
   //setup here
 
-  class ThreeBase {
-    constructor() {
+    // Global camera settings with default values
+    const cameraSettings = {
+        name: 'Camera',
+        type: 'perspective',
+        fov: 75,
+        minclip: 0.1,
+        maxclip: 2000,
+        x: 0,
+        y: 0,
+        z: 5,
+        roll: 0,
+        pitch: 0,
+        yaw: 0,
+        aspect: window.innerWidth / window.innerHeight,
+        zoom: 1,
+        upX: 0,
+        upY: 1,
+        upZ: 0,
+        lookAtX: 0,
+        lookAtY: 0,
+        lookAtZ: 0,
+        viewportX: 0,
+        viewportY: 0,
+        viewportWidth: 1,
+        viewportHeight: 1,
+        tiedto: null
+      };
 
-    }
+    const cameras = []; // Array to store camera objects
+    let currentCamera = null; // Variable to store the current camera
+    let scene = null; // Variable to store the current scene
+    let renderer = null;
+    let activeCamera = null;
+    let isInitialized = false;
+    let currentSprite = null;
+    const spriteObjects = {};
+    const modelObjects = {};
 
-    getInfo() {
-        return {
-            id: 'Dragonian3D',
-            name: '3D',
-            color1: extcolors.Three[0],
-            color2: extcolors.Three[1],
-            color3: extcolors.Three[2],
-            blocks: [
-                {
-                    opcode: 'helloWorld',
-                    blockType: BlockType.REPORTER,
-                    text: 'hello world',
+    
+    class ThreeBase {
+        constructor() {
+            this.scene = null;
+        }
+    
+        getInfo() {
+            return {
+                id: 'DragonianUSB3D',
+                name: '3D',
+                color1: extcolors.Three[0],
+                color2: extcolors.Three[1],
+                color3: extcolors.Three[2],
+                blocks: [
+                    {
+                        opcode: "initializeScene",
+                        blockType: BlockType.COMMAND,
+                        text: "initialize scene",
+                    },
+                    {
+                        opcode: "toggleScene",
+                        blockType: BlockType.COMMAND,
+                        text: "scene [ONOFF]",
+                        arguments: {
+                            ONOFF: { 
+                                type: ArgumentType.STRING, 
+                                menu: "onoff", 
+                                defaultValue: "on" 
+                            },
+                        },
+                    },
+                    {
+                        opcode: "is3DOn",
+                        blockType: BlockType.BOOLEAN,
+                        text: "3D on?",
+                    },
+                    {
+                        opcode: "setSkyboxColor",
+                        blockType: BlockType.COMMAND,
+                        text: "scene skybox color [COLOR]",
+                        arguments: {
+                            COLOR: { 
+                                type: ArgumentType.COLOR, 
+                                defaultValue: "#000000" 
+                            },
+                        },
+                    },
+                    {
+                        opcode: "setMode",
+                        blockType: BlockType.COMMAND,
+                        text: "set 3D mode to [MODE]",
+                        arguments: {
+                            MODE: {
+                                type: ArgumentType.STRING,
+                                menu: "MODE_MENU",
+                                defaultValue: "flat",
+                            },
+                        },
+                    },
+                ],
+                menus: {
+                    onoff: {
+                        acceptReporters: true,
+                        items: ["on", "off"],
+                    },
+                    MODE_MENU: {
+                        acceptReporters: true,
+                        items: ["disabled", "flat", "flat triangle", "sprite", 
+                                "cube", "sphere", "low-poly sphere"],
+                    },
+                    spriteMenu: {
+                        acceptReporters: true,
+                        items: "getSprites",
+                    },
+                },
+            };
+        }
+    
+        initializeScene() {
+
+        }
+    
+        toggleScene(args) {
+
+        }
+    
+        is3DOn() {
+
+        }
+    
+        setSkyboxColor(args) {
+
+        }
+    
+        setMode({ MODE }, util) {
+
+        }
+    
+        init() {
+
+        }
+    
+        getSprites() {
+            const spriteNames = [];
+            const targets = runtime.targets;
+            for (let index = 1; index < targets.length; index++) {
+                const target = targets[index];
+                if (target.isOriginal && target.sprite) {
+                    spriteNames.push({
+                        text: target.sprite.name,
+                        value: target.sprite.name
+                    });
                 }
-            ]
-        };
+            }
+            return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
+        }
     }
-
-    helloWorld() {
-        return 'bork bork!';
-    }
-}
 
 
 class ThreeMotion {
@@ -122,13 +250,39 @@ class ThreeMotion {
                   blockType: BlockType.REPORTER,
                   text: 'hello world',
               }
-          ]
+          ],
+          menus: {
+            MODE_MENU: {
+                acceptReporters: true,
+                items: ["disabled", "flat", "flat triangle", "sprite", 
+                        "cube", "sphere", "low-poly sphere"],
+            },
+            spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+            },
+        },
       };
   }
 
   helloWorld() {
       return 'bork bork!';
   }
+  
+  getSprites() {
+    const spriteNames = [];
+    const targets = runtime.targets;
+    for (let index = 1; index < targets.length; index++) {
+        const target = targets[index];
+        if (target.isOriginal && target.sprite) {
+            spriteNames.push({
+                text: target.sprite.name,
+                value: target.sprite.name
+            });
+        }
+    }
+    return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
+}
 }
 
 class ThreeLooks {

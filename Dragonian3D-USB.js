@@ -23,12 +23,12 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
     // Import links stored in one place for easy access
   const importlink = {
-    threejs: "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
+    THREE: "https://cdn.jsdelivr.net/npm/three@0.174.0/build/three.module.js",
     OBJLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/OBJLoader.js",
     GLTFLoader: "https://cdn.jsdelivr.net/npm/three@0.174.0/examples/jsm/loaders/GLTFLoader.js",
   }
   
-  const threejs = await import(importlink.threejs)
+  const THREE = await import(importlink.THREE)
   const OBJLoader = await import(importlink.OBJLoader)
   const OBJLoaded = new OBJLoader.OBJLoader()
   const GLTFLoader = await import(importlink.GLTFLoader)
@@ -47,18 +47,18 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   }
   
     // Constants for sprite properties
-    const IN_3D = "threejs.in3d"
-    const OBJECT = "threejs.object"
-    const THREEJS_DIRTY = "threejs.dirty"
-    const SIDE_MODE = "threejs.sidemode"
-    const TEX_FILTER = "threejs.texfilter"
-    const Z_POS = "threejs.zpos"
-    const Z_STRETCH = "threejs.zstretch"
-    const YAW = "threejs.yaw"
-    const PITCH = "threejs.pitch"
-    const ROLL = "threejs.roll"
-    const ATTACHED_TO = "threejs.attachedto"
-    const MODE = "threejs.mode"
+    const IN_3D = "THREE.in3d"
+    const OBJECT = "THREE.object"
+    const THREE_DIRTY = "THREE.dirty"
+    const SIDE_MODE = "THREE.sidemode"
+    const TEX_FILTER = "THREE.texfilter"
+    const Z_POS = "THREE.zpos"
+    const Z_STRETCH = "THREE.zstretch"
+    const YAW = "THREE.yaw"
+    const PITCH = "THREE.pitch"
+    const ROLL = "THREE.roll"
+    const ATTACHED_TO = "THREE.attachedto"
+    const MODE = "THREE.mode"
   
     let scene = null
     let renderer = null
@@ -75,7 +75,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
     const scratchRenderer = vm.runtime.renderer
   
     // Create a custom skin class for rendering the 3D scene to Scratch
-    class ThreejsSkin extends scratchRenderer.exports.Skin {
+    class THREESkin extends scratchRenderer.exports.Skin {
       constructor(id, renderer) {
         super(id, renderer)
         const gl = renderer.gl
@@ -159,17 +159,17 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
     function completeInitialization() {
       // Initialize the scene and renderer
-      scene = new threejs.Scene()
-      renderer = new threejs.WebGLRenderer({ antialias: true })
+      scene = new THREE.Scene()
+      renderer = new THREE.WebGLRenderer({ antialias: true })
       renderer.setSize(runtime.stageWidth || 480, runtime.stageHeight || 360)
       renderer.setClearColor(0x000000, 0) // Transparent background
   
       // Add ambient light to the scene
-      const ambientLight = new threejs.AmbientLight(0xffffff, 0.5)
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
       scene.add(ambientLight)
   
       // Add directional light to the scene
-      const directionalLight = new threejs.DirectionalLight(0xffffff, 0.8)
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
       directionalLight.position.set(1, 1, 1)
       scene.add(directionalLight)
   
@@ -177,7 +177,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       camerasObj = {}
   
       // Create the default camera
-      camerasObj.default = new threejs.PerspectiveCamera(
+      camerasObj.default = new THREE.PerspectiveCamera(
         cameraSettings.FOV,
         (runtime.stageWidth || 480) / (runtime.stageHeight || 360),
         cameraSettings.minrender,
@@ -187,7 +187,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       camerasObj.default.lookAt(0, 0, 0)
   
       // Create an additional top view camera
-      camerasObj.topView = new threejs.OrthographicCamera(
+      camerasObj.topView = new THREE.OrthographicCamera(
         (runtime.stageWidth || 480) / -2,
         (runtime.stageWidth || 480) / 2,
         (runtime.stageHeight || 360) / 2,
@@ -245,27 +245,27 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
     }
   
     // Create a Scratch drawable for the 3D scene
-    let threejsSkinId = null
-    let threejsDrawableId = null
-    let threejsSkin = null
+    let THREESkinId = null
+    let THREEDrawableId = null
+    let THREESkin = null
   
     function createScratchDrawable() {
       // Create a skin for the 3D scene
-      threejsSkinId = scratchRenderer._nextSkinId++
-      threejsSkin = new ThreejsSkin(threejsSkinId, scratchRenderer)
-      scratchRenderer._allSkins[threejsSkinId] = threejsSkin
+      THREESkinId = scratchRenderer._nextSkinId++
+      THREESkin = new THREESkin(THREESkinId, scratchRenderer)
+      scratchRenderer._allSkins[THREESkinId] = THREESkin
   
       // Create a drawable for the 3D scene
-      threejsDrawableId = scratchRenderer.createDrawable("pen")
-      scratchRenderer.updateDrawableSkinId(threejsDrawableId, threejsSkinId)
+      THREEDrawableId = scratchRenderer.createDrawable("pen")
+      scratchRenderer.updateDrawableSkinId(THREEDrawableId, THREESkinId)
   
       // Set the drawable to be always visible and on top
-      scratchRenderer.updateDrawableVisible(threejsDrawableId, true)
-      scratchRenderer.updateDrawableEffect(threejsDrawableId, "ghost", 0)
+      scratchRenderer.updateDrawableVisible(THREEDrawableId, true)
+      scratchRenderer.updateDrawableEffect(THREEDrawableId, "ghost", 0)
   
       // Position the drawable to cover the entire stage
-      scratchRenderer.updateDrawablePosition(threejsDrawableId, [0, 0])
-      scratchRenderer.updateDrawableScale(threejsDrawableId, [100, 100])
+      scratchRenderer.updateDrawablePosition(THREEDrawableId, [0, 0])
+      scratchRenderer.updateDrawableScale(THREEDrawableId, [100, 100])
   
       // Make sure the 3D scene is rendered on top of everything
       runtime.on("BEFORE_DRAW", () => {
@@ -274,8 +274,8 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
           renderer.render(scene, activeCamera)
   
           // Update the Scratch skin with the rendered 3D scene
-          if (threejsSkin) {
-            threejsSkin.setContent(renderer.domElement)
+          if (THREESkin) {
+            THREESkin.setContent(renderer.domElement)
           }
         }
       })
@@ -291,8 +291,8 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         renderer.render(scene, activeCamera)
   
         // Update the Scratch skin with the rendered 3D scene
-        if (threejsSkin) {
-          threejsSkin.setContent(renderer.domElement)
+        if (THREESkin) {
+          THREESkin.setContent(renderer.domElement)
         }
       }
     }
@@ -311,7 +311,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
           drawable[OBJECT].position.y = target.y
   
           // Update rotation from Scratch sprite
-          drawable[ROLL] = threejs.MathUtils.degToRad(90 - target.direction)
+          drawable[ROLL] = THREE.MathUtils.degToRad(90 - target.direction)
           updateSpriteAngle(drawable)
   
           // Update scale based on Scratch sprite size
@@ -338,7 +338,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
     // Load a 3D model from URL
     async function loadModel(modelName, modelURL, modelType) {
-      if (!threejs) return null
+      if (!THREE) return null
   
       try {
         // For OBJ files
@@ -406,7 +406,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             const o = this[OBJECT]
             if (o && o.visible !== value) {
               o.visible = value
-              renderer[THREEJS_DIRTY] = true
+              renderer[THREE_DIRTY] = true
             }
           }
           return og(value)
@@ -417,16 +417,16 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             if (o) {
               o.position.x = position[0]
               o.position.y = position[1]
-              renderer[THREEJS_DIRTY] = true
+              renderer[THREE_DIRTY] = true
             }
           }
           return og(position)
         },
         updateDirection(og, direction) {
           if (this[IN_3D]) {
-            this[ROLL] = threejs.MathUtils.degToRad(90 - direction)
+            this[ROLL] = THREE.MathUtils.degToRad(90 - direction)
             updateSpriteAngle(this)
-            renderer[THREEJS_DIRTY] = true
+            renderer[THREE_DIRTY] = true
           }
           return og(direction)
         },
@@ -437,7 +437,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
               obj.scale.x = ((obj._sizeX || 100) / 100) * scale[0]
               obj.scale.y = ((obj._sizeY || 100) / 100) * scale[1]
               obj.scale.z = ((obj._sizeZ || 100) / 100) * (this[Z_STRETCH] || scale[0])
-              renderer[THREEJS_DIRTY] = true
+              renderer[THREE_DIRTY] = true
             }
           }
           return og(scale)
@@ -458,7 +458,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             }
             if (this[OBJECT].geometry) this[OBJECT].geometry.dispose()
             this[OBJECT] = null
-            renderer[THREEJS_DIRTY] = true
+            renderer[THREE_DIRTY] = true
           }
           return og()
         },
@@ -466,17 +466,17 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
           og()
           if (this[IN_3D]) {
             updateDrawableSkin(this)
-            renderer[THREEJS_DIRTY] = true
+            renderer[THREE_DIRTY] = true
           }
         },
       })
   
       patch(scratchRenderer, {
         draw(og) {
-          if (this[THREEJS_DIRTY]) {
+          if (this[THREE_DIRTY]) {
             // Do a 3D redraw
             refreshScene()
-            this[THREEJS_DIRTY] = false
+            this[THREE_DIRTY] = false
           }
           return og()
         },
@@ -493,15 +493,15 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       obj.rotation.y = 0
       obj.rotation.z = 0
   
-      const WRAP_MIN = threejs.MathUtils.degToRad(-180)
-      const WRAP_MAX = threejs.MathUtils.degToRad(180)
+      const WRAP_MIN = THREE.MathUtils.degToRad(-180)
+      const WRAP_MAX = THREE.MathUtils.degToRad(180)
       drawable[YAW] = wrapClamp(drawable[YAW] || 0, WRAP_MIN, WRAP_MAX)
       drawable[PITCH] = wrapClamp(drawable[PITCH] || 0, WRAP_MIN, WRAP_MAX)
       drawable[ROLL] = wrapClamp(drawable[ROLL] || 0, WRAP_MIN, WRAP_MAX)
   
       obj.rotation.y = drawable[YAW]
-      obj.rotateOnAxis(new threejs.Vector3(1, 0, 0), drawable[PITCH])
-      obj.rotateOnAxis(new threejs.Vector3(0, 0, 1), threejs.MathUtils.degToRad(90) - drawable[ROLL])
+      obj.rotateOnAxis(new THREE.Vector3(1, 0, 0), drawable[PITCH])
+      obj.rotateOnAxis(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(90) - drawable[ROLL])
     }
   
     // Helper function for angle wrapping
@@ -525,7 +525,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         if (drawable[OBJECT] && drawable[OBJECT].parent !== newParent) {
           drawable[OBJECT].removeFromParent()
           newParent.add(drawable[OBJECT])
-          renderer[THREEJS_DIRTY] = true
+          renderer[THREE_DIRTY] = true
         }
       }
     }
@@ -555,8 +555,8 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       const obj = drawable[OBJECT]
       if (!obj || !obj.material) return
   
-      if (!(SIDE_MODE in drawable)) drawable[SIDE_MODE] = threejs.DoubleSide
-      if (!(TEX_FILTER in drawable)) drawable[TEX_FILTER] = threejs.LinearMipmapLinearFilter
+      if (!(SIDE_MODE in drawable)) drawable[SIDE_MODE] = THREE.DoubleSide
+      if (!(TEX_FILTER in drawable)) drawable[TEX_FILTER] = THREE.LinearMipmapLinearFilter
   
       const materials = Array.isArray(obj.material) ? obj.material : [obj.material]
   
@@ -567,7 +567,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         if (material.map) {
           material.map.minFilter = drawable[TEX_FILTER]
           material.map.magFilter =
-            drawable[TEX_FILTER] === threejs.NearestFilter ? threejs.NearestFilter : threejs.LinearFilter
+            drawable[TEX_FILTER] === THREE.NearestFilter ? THREE.NearestFilter : THREE.LinearFilter
           material.map.needsUpdate = true
         }
       })
@@ -580,14 +580,14 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       const canvas = getCanvasFromSkin(skin)
       if (canvas instanceof Promise) {
         return canvas.then((resolvedCanvas) => {
-          skin._3dCachedTexture = new threejs.CanvasTexture(resolvedCanvas)
-          skin._3dCachedTexture.colorSpace = threejs.SRGBColorSpace
+          skin._3dCachedTexture = new THREE.CanvasTexture(resolvedCanvas)
+          skin._3dCachedTexture.colorSpace = THREE.SRGBColorSpace
           return skin._3dCachedTexture
         })
       }
   
-      skin._3dCachedTexture = new threejs.CanvasTexture(canvas)
-      skin._3dCachedTexture.colorSpace = threejs.SRGBColorSpace
+      skin._3dCachedTexture = new THREE.CanvasTexture(canvas)
+      skin._3dCachedTexture.colorSpace = THREE.SRGBColorSpace
   
       return skin._3dCachedTexture
     }
@@ -678,9 +678,9 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
       let obj
       if (mode === "sprite") {
-        obj = new threejs.Sprite(new threejs.SpriteMaterial())
+        obj = new THREE.Sprite(new THREE.SpriteMaterial())
       } else {
-        obj = new threejs.Mesh()
+        obj = new THREE.Mesh()
       }
   
       drawable[OBJECT] = obj
@@ -688,7 +688,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
       if (!(YAW in drawable)) drawable[YAW] = 0
       if (!(PITCH in drawable)) drawable[PITCH] = 0
-      if (!(ROLL in drawable)) drawable[ROLL] = threejs.MathUtils.degToRad(90 - drawable.direction)
+      if (!(ROLL in drawable)) drawable[ROLL] = THREE.MathUtils.degToRad(90 - drawable.direction)
       if (!(Z_POS in drawable)) drawable[Z_POS] = 0
   
       // Set initial position from Scratch sprite
@@ -701,7 +701,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
       scene.add(obj)
       updateAttachment(drawable)
-      renderer[THREEJS_DIRTY] = true
+      renderer[THREE_DIRTY] = true
     }
   
     // Update the mesh for a drawable based on the specified mode
@@ -730,45 +730,45 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
       // Create new geometry and material based on mode
       if (obj.isSprite) {
-        obj.material = new threejs.SpriteMaterial()
+        obj.material = new THREE.SpriteMaterial()
         obj._sizeX = 100
         obj._sizeY = 100
         obj._sizeZ = 100
       } else {
         switch (mode) {
           case "flat":
-            obj.geometry = new threejs.PlaneGeometry(width, height)
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.geometry = new THREE.PlaneGeometry(width, height)
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
           case "flat triangle": {
-            const geometry = new threejs.BufferGeometry()
+            const geometry = new THREE.BufferGeometry()
             const w = width / 2
             const h = height / 2
   
             const vertices = new Float32Array([-w, -h, 0.0, w, -h, 0.0, -w, h, 0.0])
             const uvs = new Float32Array([0, 0, 1, 0, 0, 1])
             geometry.setIndex([0, 1, 2])
-            geometry.setAttribute("position", new threejs.BufferAttribute(vertices, 3))
-            geometry.setAttribute("uv", new threejs.BufferAttribute(uvs, 2))
+            geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3))
+            geometry.setAttribute("uv", new THREE.BufferAttribute(uvs, 2))
             obj.geometry = geometry
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
           }
           case "cube":
-            obj.geometry = new threejs.BoxGeometry(width, height, depth)
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.geometry = new THREE.BoxGeometry(width, height, depth)
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
           case "sphere":
-            obj.geometry = new threejs.SphereGeometry(depth, 24, 12)
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.geometry = new THREE.SphereGeometry(depth, 24, 12)
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
           case "low-poly sphere":
-            obj.geometry = new threejs.SphereGeometry(depth, 8, 6)
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.geometry = new THREE.SphereGeometry(depth, 8, 6)
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
           default:
-            obj.geometry = new threejs.PlaneGeometry(width, height)
-            obj.material = new threejs.MeshBasicMaterial({ transparent: true })
+            obj.geometry = new THREE.PlaneGeometry(width, height)
+            obj.material = new THREE.MeshBasicMaterial({ transparent: true })
             break
         }
   
@@ -844,27 +844,27 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         drawable[OBJECT] = null
       }
   
-      renderer[THREEJS_DIRTY] = true
+      renderer[THREE_DIRTY] = true
     }
   
     // Set skybox color for the scene
     function setSkyboxColor(color) {
       if (!isInitialized || !scene) return
   
-      // Convert color from Scratch format (#RRGGBB) to threejs format (0xRRGGBB)
+      // Convert color from Scratch format (#RRGGBB) to THREE format (0xRRGGBB)
       let colorValue = color
       if (typeof color === "string" && color.startsWith("#")) {
         colorValue = Number.parseInt(color.substring(1), 16)
       }
   
-      scene.background = new threejs.Color(colorValue)
-      renderer[THREEJS_DIRTY] = true
+      scene.background = new THREE.Color(colorValue)
+      renderer[THREE_DIRTY] = true
     }
   
     // Global extension variables
     const ext = {
       colors: {
-        threejs: "#0000FF",
+        THREE: "#0000FF",
         motion: "#396FAF",
         looks: "#734EBF",
         events: "#BF8F00",
@@ -873,7 +873,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       },
       cameras: cameras,
       models: models,
-      threejs: threejs,
+      THREE: THREE,
       scene: scene,
       renderer: renderer,
       camerasObj: camerasObj,
@@ -899,7 +899,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         return {
           id: "DragonianUSB3D",
           name: "3D",
-          color1: ext.colors.threejs,
+          color1: ext.colors.THREE,
           blocks: [
             {
               opcode: "initializeScene",
@@ -968,13 +968,13 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       toggleScene(args) {
         if (isInitialized && renderer) {
           if (args.ONOFF === "on") {
-            if (threejsDrawableId) {
-              scratchRenderer.updateDrawableVisible(threejsDrawableId, true)
+            if (THREEDrawableId) {
+              scratchRenderer.updateDrawableVisible(THREEDrawableId, true)
             }
             return "Scene turned on"
           } else {
-            if (threejsDrawableId) {
-              scratchRenderer.updateDrawableVisible(threejsDrawableId, false)
+            if (THREEDrawableId) {
+              scratchRenderer.updateDrawableVisible(THREEDrawableId, false)
             }
             return "Scene turned off"
           }
@@ -983,7 +983,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
       }
   
       is3DOn() {
-        return isInitialized && threejsDrawableId && scratchRenderer._allDrawables[threejsDrawableId].visible
+        return isInitialized && THREEDrawableId && scratchRenderer._allDrawables[THREEDrawableId].visible
       }
   
       setSkyboxColor(args) {
@@ -1217,7 +1217,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         const obj = drawable[OBJECT]
   
         // Get the direction the sprite is facing (assuming -Z is forward)
-        const direction = new threejs.Vector3(0, 0, -1)
+        const direction = new THREE.Vector3(0, 0, -1)
         direction.applyQuaternion(obj.quaternion)
         direction.multiplyScalar(steps / 10) // Scale steps for better control
   
@@ -1226,7 +1226,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         obj.position.z += direction.z
         drawable[Z_POS] = obj.position.z
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Moved steps"
       }
   
@@ -1247,7 +1247,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         drawable[OBJECT].position.z = z
         drawable[Z_POS] = z
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Position set"
       }
   
@@ -1268,7 +1268,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         drawable[OBJECT].position.z += z
         drawable[Z_POS] = drawable[OBJECT].position.z
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Position changed"
       }
   
@@ -1289,11 +1289,11 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         target.setDirection(90 - r)
   
         // Set pitch and yaw directly
-        drawable[PITCH] = threejs.MathUtils.degToRad(p)
-        drawable[YAW] = threejs.MathUtils.degToRad(y)
+        drawable[PITCH] = THREE.MathUtils.degToRad(p)
+        drawable[YAW] = THREE.MathUtils.degToRad(y)
   
         updateSpriteAngle(drawable)
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Rotation set"
       }
   
@@ -1314,11 +1314,11 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         target.setDirection(target.direction - r)
   
         // Change pitch and yaw directly
-        drawable[PITCH] = (drawable[PITCH] || 0) + threejs.MathUtils.degToRad(p)
-        drawable[YAW] = (drawable[YAW] || 0) + threejs.MathUtils.degToRad(y)
+        drawable[PITCH] = (drawable[PITCH] || 0) + THREE.MathUtils.degToRad(p)
+        drawable[YAW] = (drawable[YAW] || 0) + THREE.MathUtils.degToRad(y)
   
         updateSpriteAngle(drawable)
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Rotation changed"
       }
   
@@ -1347,7 +1347,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             break
         }
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Position set"
       }
   
@@ -1368,15 +1368,15 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             target.setDirection(90 - value)
             break
           case "p (pitch)":
-            drawable[PITCH] = threejs.MathUtils.degToRad(value)
+            drawable[PITCH] = THREE.MathUtils.degToRad(value)
             break
           case "y (yaw)":
-            drawable[YAW] = threejs.MathUtils.degToRad(value)
+            drawable[YAW] = THREE.MathUtils.degToRad(value)
             break
         }
   
         updateSpriteAngle(drawable)
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Rotation set"
       }
   
@@ -1395,9 +1395,9 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
           case "r (roll)":
             return (90 - target.direction).toFixed(2)
           case "p (pitch)":
-            return threejs.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
+            return THREE.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
           case "y (yaw)":
-            return threejs.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
+            return THREE.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
         }
   
         return 0
@@ -1442,7 +1442,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         const drawable = scratchRenderer._allDrawables[target.drawableID]
         if (!drawable[IN_3D]) return 0
   
-        return threejs.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
+        return THREE.MathUtils.radToDeg(drawable[PITCH] || 0).toFixed(2)
       }
   
       yaw(args, util) {
@@ -1454,7 +1454,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         const drawable = scratchRenderer._allDrawables[target.drawableID]
         if (!drawable[IN_3D]) return 0
   
-        return threejs.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
+        return THREE.MathUtils.radToDeg(drawable[YAW] || 0).toFixed(2)
       }
   
       positionArray(args, util) {
@@ -1496,8 +1496,8 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
         return JSON.stringify([
           90 - target.direction, // roll
-          threejs.MathUtils.radToDeg(drawable[PITCH] || 0), // pitch
-          threejs.MathUtils.radToDeg(drawable[YAW] || 0), // yaw
+          THREE.MathUtils.radToDeg(drawable[PITCH] || 0), // pitch
+          THREE.MathUtils.radToDeg(drawable[YAW] || 0), // yaw
         ])
       }
   
@@ -1512,8 +1512,8 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
         return JSON.stringify({
           roll: 90 - target.direction,
-          pitch: threejs.MathUtils.radToDeg(drawable[PITCH] || 0),
-          yaw: threejs.MathUtils.radToDeg(drawable[YAW] || 0),
+          pitch: THREE.MathUtils.radToDeg(drawable[PITCH] || 0),
+          yaw: THREE.MathUtils.radToDeg(drawable[YAW] || 0),
         })
       }
   
@@ -1531,21 +1531,21 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
         switch (turnDirection) {
           case "up":
-            drawable[PITCH] = (drawable[PITCH] || 0) - threejs.MathUtils.degToRad(degrees)
+            drawable[PITCH] = (drawable[PITCH] || 0) - THREE.MathUtils.degToRad(degrees)
             break
           case "down":
-            drawable[PITCH] = (drawable[PITCH] || 0) + threejs.MathUtils.degToRad(degrees)
+            drawable[PITCH] = (drawable[PITCH] || 0) + THREE.MathUtils.degToRad(degrees)
             break
           case "left":
-            drawable[YAW] = (drawable[YAW] || 0) + threejs.MathUtils.degToRad(degrees)
+            drawable[YAW] = (drawable[YAW] || 0) + THREE.MathUtils.degToRad(degrees)
             break
           case "right":
-            drawable[YAW] = (drawable[YAW] || 0) - threejs.MathUtils.degToRad(degrees)
+            drawable[YAW] = (drawable[YAW] || 0) - THREE.MathUtils.degToRad(degrees)
             break
         }
   
         updateSpriteAngle(drawable)
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Turned"
       }
     }
@@ -1780,7 +1780,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         updateSpriteAngle(drawable)
         updateAttachment(drawable)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Model set"
       }
   
@@ -1846,12 +1846,12 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         const filter = args.TEXTUREFILTER
   
         // Set the filter type
-        drawable[TEX_FILTER] = filter === "nearest" ? threejs.NearestFilter : threejs.LinearMipmapLinearFilter
+        drawable[TEX_FILTER] = filter === "nearest" ? THREE.NearestFilter : THREE.LinearMipmapLinearFilter
   
         // Apply the filter to the material
         updateMaterialForDrawable(drawable)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Texture filter set"
       }
   
@@ -1869,20 +1869,20 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         // Set the side mode
         switch (faces) {
           case "both":
-            drawable[SIDE_MODE] = threejs.DoubleSide
+            drawable[SIDE_MODE] = THREE.DoubleSide
             break
           case "front":
-            drawable[SIDE_MODE] = threejs.FrontSide
+            drawable[SIDE_MODE] = THREE.FrontSide
             break
           case "back":
-            drawable[SIDE_MODE] = threejs.BackSide
+            drawable[SIDE_MODE] = THREE.BackSide
             break
         }
   
         // Apply the side mode to the material
         updateMaterialForDrawable(drawable)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Face culling set"
       }
   
@@ -1934,7 +1934,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         // Store the z stretch for future updates
         drawable[Z_STRETCH] = z / 100
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Stretch set"
       }
   
@@ -2120,7 +2120,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         drawable[ATTACHED_TO] = targetDrawable
         updateAttachment(drawable)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Sprite attached"
       }
   
@@ -2136,7 +2136,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         drawable[ATTACHED_TO] = null
         updateAttachment(drawable)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Sprite detached"
       }
   
@@ -2548,7 +2548,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         const cameraName = args.CAMERA
         if (!camerasObj[cameraName]) {
           // Create a new perspective camera with default settings
-          camerasObj[cameraName] = new threejs.PerspectiveCamera(
+          camerasObj[cameraName] = new THREE.PerspectiveCamera(
             cameraSettings.FOV,
             (runtime.stageWidth || 480) / (runtime.stageHeight || 360),
             cameraSettings.minrender,
@@ -2592,7 +2592,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         if (camerasObj[cameraName]) {
           // Switch to this camera
           switchCamera(cameraName)
-          renderer[THREEJS_DIRTY] = true
+          renderer[THREE_DIRTY] = true
           return "Camera focused"
         }
         return "Camera not found"
@@ -2614,12 +2614,12 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         }
   
         // Move camera forward in its current direction
-        const direction = new threejs.Vector3(0, 0, -1)
+        const direction = new THREE.Vector3(0, 0, -1)
         direction.applyQuaternion(camera.quaternion)
         direction.multiplyScalar(steps / 10) // Scale steps for better control
         camera.position.add(direction)
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera moved"
       }
   
@@ -2641,7 +2641,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         }
   
         camera.position.set(x, y, z)
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera position set"
       }
   
@@ -2666,7 +2666,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         camera.position.y += y
         camera.position.z += z
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera position changed"
       }
   
@@ -2690,7 +2690,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         // Set rotation using Euler angles with YXZ order (yaw, pitch, roll)
         camera.rotation.set(p, y, r, "YXZ")
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera rotation set"
       }
   
@@ -2716,7 +2716,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         camera.rotation.y += y
         camera.rotation.z += r
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera rotation changed"
       }
   
@@ -2748,7 +2748,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             break
         }
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera position set"
       }
   
@@ -2780,7 +2780,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             break
         }
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera rotation set"
       }
   
@@ -3022,9 +3022,9 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
         camera.position.set(targetObj.x, targetObj.y + 50, (targetObj.z || 0) + 200)
   
         // Look at the sprite
-        camera.lookAt(new threejs.Vector3(targetObj.x, targetObj.y, targetObj.z || 0))
+        camera.lookAt(new THREE.Vector3(targetObj.x, targetObj.y, targetObj.z || 0))
   
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera attached to sprite"
       }
   
@@ -3036,7 +3036,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
   
         if (this.#cameraBoundSprites[camKey]) {
           delete this.#cameraBoundSprites[camKey]
-          renderer[THREEJS_DIRTY] = true
+          renderer[THREE_DIRTY] = true
           return "Camera detached"
         }
   
@@ -3097,7 +3097,7 @@ TypeError: Failed to resolve module specifier "three". Relative references must 
             })
             break
         }
-        renderer[THREEJS_DIRTY] = true
+        renderer[THREE_DIRTY] = true
         return "Camera settings updated"
       }
   
