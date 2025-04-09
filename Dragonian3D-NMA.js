@@ -26,7 +26,7 @@
     Camera: ["#FF0000", "#0000ff", "#0000ff"],      // Pure Red
     Operators: ["#59C059", "#0000ff", "#0000ff"],   // Green
     Pen: ["#0FBD8C", "#0000ff", "#0000ff"],         // Teal
-    Lighting: ["#FFD700", "#0000ff", "#0000ff"],    // Gold
+    Lighting: ["#D1B894", "#0000ff", "#0000ff"],    // Gold
     Hitboxes: ["#6A6865", "#0000ff", "#0000ff"]     // Gravel
 };
 
