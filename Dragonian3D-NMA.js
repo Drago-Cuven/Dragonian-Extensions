@@ -124,7 +124,6 @@
                 id: 'DragonianUSB3D',
                 name: '3D',
                 color1: extcolors.Three[0],
-                color2: extcolors.Three[1],
                 color3: extcolors.Three[2],
                 blocks: [
                     {
@@ -161,14 +160,12 @@
                         },
                     },
                     {
-                        opcode: "setMode",
+                        opcode: "setSkyboxTexture",
                         blockType: BlockType.COMMAND,
-                        text: "set 3D mode to [MODE]",
+                        text: "scene skybox Texture [Costume]",
                         arguments: {
-                            MODE: {
-                                type: ArgumentType.STRING,
-                                menu: "MODE_MENU",
-                                defaultValue: "flat",
+                            Costume: { 
+                                type: ArgumentType.COSTUME, 
                             },
                         },
                     },
@@ -206,8 +203,8 @@
         setSkyboxColor(args) {
 
         }
-    
-        setMode({ MODE }, util) {
+
+        setSkyboxTexture(args) {
 
         }
     
@@ -268,7 +265,7 @@ class ThreeMotion {
   helloWorld() {
       return 'bork bork!';
   }
-  
+
   getSprites() {
     const spriteNames = [];
     const targets = runtime.targets;
@@ -302,13 +299,55 @@ class ThreeLooks {
                   opcode: 'helloWorld',
                   blockType: BlockType.REPORTER,
                   text: 'hello world',
-              }
-          ]
+              },
+              {
+                opcode: "setMode",
+                blockType: BlockType.COMMAND,
+                text: "set 3D mode to [MODE]",
+                arguments: {
+                    MODE: {
+                        type: ArgumentType.STRING,
+                        menu: "MODE_MENU",
+                        defaultValue: "flat",
+                    },
+                },
+            },
+          ],
+          menus: {
+            MODE_MENU: {
+                acceptReporters: true,
+                items: ["disabled", "flat", "flat triangle", "sprite", 
+                        "cube", "sphere", "low-poly sphere"],
+            },
+            spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+            },
+        },
       };
   }
 
   helloWorld() {
       return 'bork bork!';
+  }
+
+  setMode({ MODE }, util) {
+
+  }
+  
+  getSprites() {
+    const spriteNames = [];
+    const targets = runtime.targets;
+    for (let index = 1; index < targets.length; index++) {
+        const target = targets[index];
+        if (target.isOriginal && target.sprite) {
+            spriteNames.push({
+                text: target.sprite.name,
+                value: target.sprite.name
+            });
+        }
+    }
+    return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
   }
 }
 
