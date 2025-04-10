@@ -788,34 +788,246 @@
             color2: extcolors.Camera[1],
             color3: extcolors.Camera[2],
             blocks: [
-          {
-              opcode: "attachSprite",
-              blockType: Scratch.BlockType.COMMAND,
-              text: "attach myself to [TARGET]",
-              arguments: {
-                TARGET: {
-                  type: Scratch.ArgumentType.STRING,
-                  menu: "spriteMenu",
+              {
+                opcode: "createCamera",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "create camera [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, defaultValue: "current" },
                 },
               },
-            },
-            {
-              opcode: "detachSprite",
-              blockType: Scratch.BlockType.COMMAND,
-              text: "detach myself",
-            },
-            {
-              opcode: "attachedSprite",
-              blockType: Scratch.BlockType.REPORTER,
-              text: "sprite I'm attached to",
-            },
+              {
+                opcode: "deleteCamera",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "delete camera [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "existingCameras",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "existing cameras",
+              },
+              {
+                opcode: "focusCamera",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "focus on camera [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "moveCameraSteps",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "move camera [CAMERA] [STEPS] steps in 3D",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 },
+                },
+              },
+              {
+                opcode: "setCameraPosition",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set camera position of [CAMERA] to x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "changeCameraPosition",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change camera position of [CAMERA] by x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setCameraRotation",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set camera rotation of [CAMERA] to r:[R] p:[P] y:[Y]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "changeCameraRotation",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change camera rotation of [CAMERA] by r:[R] p:[P] y:[Y]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setCameraPosMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set camera pos [POSTYPES] of [CAMERA] to [NUMBER]",
+                arguments: {
+                  POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setCameraRotMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set camera rot [ROTTYPES] of [CAMERA] to [NUMBER]",
+                arguments: {
+                  ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "cameraDirectionAround",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera direction around [ROTTYPES] of [CAMERA]",
+                arguments: {
+                  ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraXPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera x position of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraYPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera y position of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraZPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera z position of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraRoll",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera roll of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraPitch",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera pitch of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraYaw",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera yaw of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraPositionArray",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "camera position of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraPositionObject",
+                blockType: Scratch.BlockType.OBJECT,
+                text: "camera position of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraRotationArray",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "camera rotation of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "cameraRotationObject",
+                blockType: Scratch.BlockType.OBJECT,
+                text: "camera rotation of [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "bindCamera",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "attach camera [CAMERA] to [SPRITE]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                  SPRITE: { type: Scratch.ArgumentType.STRING, menu: "spriteMenu" },
+                },
+              },
+              {
+                opcode: "unbindCamera",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "detach camera [CAMERA]",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "bindedSprite",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "sprite camera [CAMERA] is attached to",
+                arguments: {
+                  CAMERA: { type: Scratch.ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+                },
+              },
+              {
+                opcode: "setCameraVis",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set camera [CAMVIS] to [NUMBER]",
+                arguments: {
+                  CAMVIS: { type: Scratch.ArgumentType.STRING, menu: "camvis" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 90 },
+                },
+              },
+              {
+                opcode: "getCameraVis",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "camera [CAMVIS]",
+                arguments: {
+                  CAMVIS: { type: Scratch.ArgumentType.STRING, menu: "camvis", defaultValue: "FOV" },
+                },
+              },
             ],
             menus: {
               spriteMenu: {
                   acceptReporters: true,
                   items: "getSprites",
               },
-              postypes: {
+                postypes: {
                   acceptReporters: true,
                   items: ["x", "y", "z"],
                 },
@@ -823,9 +1035,17 @@
                   acceptReporters: true,
                   items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
                 },
-              spriteMenu: {
+                spriteMenu: {
                   acceptReporters: true,
                   items: "getSprites",
+                },
+                camvis: {
+                  acceptReporters: true,
+                  items: [{ text: "field of view", value: "fov" }, { text: "near", value: "minclip" }, { text: "far", value: "maxclip" }],
+                },
+                turndirs: {
+                  acceptReporters: true,
+                  items: ["up", "down", "left", "right"],
                 },
           },
         };
@@ -834,6 +1054,35 @@
     helloWorld() {
         return 'bork bork!';
     }
+
+    createCamera(args) {}
+    deleteCamera(args) {}
+    existingCameras(args) {}
+    focusCamera(args) {}
+    moveCameraSteps(args) {}
+    setCameraPosition(args) {}
+    changeCameraPosition(args) {}
+    setCameraRotation(args) {}
+    changeCameraRotation(args) {}
+    setCameraPosMenu(args) {}
+    setCameraRotMenu(args) {}
+    cameraDirectionAround(args) {}
+    cameraXPosition(args) {}
+    cameraYPosition(args) {}
+    cameraZPosition(args) {}
+    cameraRoll(args) {}
+    cameraPitch(args) {}
+    cameraYaw(args) {}
+    cameraPositionArray(args) {}
+    cameraPositionObject(args) {}
+    cameraRotationArray(args) {}
+    cameraRotationObject(args) {}
+    bindCamera(args) {}
+    unbindCamera(args) {}
+    bindedSprite(args) {}
+    setCameraVis(args) {}
+    getCameraVis(args) {}
+
   }
   
   class ThreeOperators {
