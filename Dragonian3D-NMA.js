@@ -242,44 +242,213 @@ class ThreeMotion {
           color2: extcolors.Motion[1],
           color3: extcolors.Motion[2],
           blocks: [
+            {
+                opcode: "moveSteps",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "move [STEPS] steps in 3D",
+                arguments: {
+                  STEPS: { type: Scratch.ArgumentType.NUMBER, defaultValue: 10 },
+                },
+              },
               {
-                  opcode: 'helloWorld',
-                  blockType: BlockType.REPORTER,
-                  text: 'hello world',
-              }
-          ],
-          menus: {
-            MODE_MENU: {
+                opcode: "setPosition",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set position to x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "changePosition",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change position by x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setRotation",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set rotation to r:[R] p:[P] y:[Y]",
+                arguments: {
+                  R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "changeRotation",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change rotation by r:[R] p:[P] y:[Y]",
+                arguments: {
+                  R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setPosMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set pos [POSTYPES] to [NUMBER]",
+                arguments: {
+                  POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setRotMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set rot [ROTTYPES] to [NUMBER]",
+                arguments: {
+                  ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "directionAround",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "direction around [ROTTYPES]",
+                arguments: {
+                  ROTTYPES: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+                },
+              },
+              {
+                opcode: "xPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "x position",
+              },
+              {
+                opcode: "yPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "y position",
+              },
+              {
+                opcode: "zPosition",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "z position",
+              },
+              {
+                opcode: "roll",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "roll",
+              },
+              {
+                opcode: "pitch",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "pitch",
+              },
+              {
+                opcode: "yaw",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "yaw",
+              },
+              {
+                opcode: "positionArray",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "position",
+              },
+              {
+                opcode: "positionObject",
+                blockType: Scratch.BlockType.OBJECT,
+                text: "position",
+              },
+              {
+                opcode: "rotationArray",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "rotation",
+              },
+              {
+                opcode: "rotationObject",
+                blockType: Scratch.BlockType.OBJECT,
+                text: "rotation",
+              },
+              {
+                opcode: "turnDegrees",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "turn [TURNDIRS] [NUM] degrees",
+                arguments: {
+                  TURNDIRS: { type: Scratch.ArgumentType.STRING, menu: "turndirs", defaultValue: "up" },
+                  NUM: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+            ],
+            menus: {
+              postypes: {
                 acceptReporters: true,
-                items: ["disabled", "flat", "flat triangle", "sprite", 
-                        "cube", "sphere", "low-poly sphere"],
-            },
-            spriteMenu: {
+                items: ["x", "y", "z"],
+              },
+              rottypes: {
                 acceptReporters: true,
-                items: "getSprites",
+                items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
+              },
+              turndirs: {
+                acceptReporters: true,
+                items: ["up", "down", "left", "right"],
+              },
             },
-        },
       };
   }
 
-  helloWorld() {
-      return 'bork bork!';
+  moveSteps(args, util) {
+
   }
 
-  getSprites() {
-    const spriteNames = [];
-    const targets = runtime.targets;
-    for (let index = 1; index < targets.length; index++) {
-        const target = targets[index];
-        if (target.isOriginal && target.sprite) {
-            spriteNames.push({
-                text: target.sprite.name,
-                value: target.sprite.name
-            });
-        }
-    }
-    return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
-}
+  setRotation(args, util) {
+
+  }
+
+  changeRotation(args, util) {
+
+  }
+
+  directionAround(args, util) {
+
+  }
+
+  xPosition(args, util) {
+
+  }
+
+  yPosition(args, util) {
+
+  }
+
+  zPosition(args, util) {
+
+  }
+
+  roll(args, util) {
+
+  }
+
+  pitch(args, util) {
+
+  }
+
+  yaw(args, util) {
+
+  }
+
+  positionArray(args, util) {
+
+  }
+
+  positionObject(args, util) {
+
+  }
+
+  rotationArray(args, util) {
+
+  }
+
+  rotationObject(args, util) {
+
+  }
+
 }
 
 class ThreeLooks {
@@ -303,7 +472,7 @@ class ThreeLooks {
               {
                 opcode: "setMode",
                 blockType: BlockType.COMMAND,
-                text: "set 3D mode to [MODE]",
+                text: "set sprite mode to [MODE]",
                 arguments: {
                     MODE: {
                         type: ArgumentType.STRING,
@@ -312,6 +481,132 @@ class ThreeLooks {
                     },
                 },
             },
+            {
+                opcode: "setModel",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set model to [MODEL]",
+                arguments: {
+                  MODEL: { type: Scratch.ArgumentType.STRING, menu: "models", defaultValue: "none" },
+                },
+              },
+              {
+                opcode: "addModel",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "add model as [MODELNAME] from url [MODELURL]",
+                arguments: {
+                  MODELNAME: { type: Scratch.ArgumentType.STRING, defaultValue: "new model" },
+                  MODELURL: {
+                    type: Scratch.ArgumentType.STRING,
+                    defaultValue:
+                      "https://raw.githubusercontent.com/alecjacobson/common-3d-test-models/refs/heads/master/data/teapot.obj",
+                  },
+                },
+              },
+              {
+                opcode: "existingModels",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "existing models",
+              },
+              {
+                opcode: "setTextureFilter",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set texture filter to [TEXTUREFILTER]",
+                arguments: {
+                  TEXTUREFILTER: { type: Scratch.ArgumentType.STRING, menu: "texturefilter", defaultValue: "nearest" },
+                },
+              },
+              {
+                opcode: "showFaces",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "show faces [SHOWFACES] of myself",
+                arguments: {
+                  SHOWFACES: { type: Scratch.ArgumentType.STRING, menu: "showfaces", defaultValue: "both" },
+                },
+              },
+              {
+                opcode: "setStretch",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set stretch to x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                },
+              },
+              {
+                opcode: "changeStretch",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change stretch by x:[X] y:[Y] z:[Z]",
+                arguments: {
+                  X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "setStretchMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "set stretch [POSTYPES] to [NUMBER]",
+                arguments: {
+                  POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                },
+              },
+              {
+                opcode: "changeStretchMenu",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "change stretch [POSTYPES] by [NUMBER]",
+                arguments: {
+                  POSTYPES: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+                  NUMBER: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                },
+              },
+              {
+                opcode: "stretchX",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "stretch x",
+              },
+              {
+                opcode: "stretchY",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "stretch y",
+              },
+              {
+                opcode: "stretchZ",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "stretch z",
+              },
+              {
+                opcode: "stretchesArray",
+                blockType: Scratch.BlockType.ARRAY,
+                text: "stretches",
+              },
+              {
+                opcode: "stretchesObject",
+                blockType: Scratch.BlockType.OBJECT,
+                text: "stretches",
+              },
+              {
+                opcode: "attachSprite",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "attach myself to [TARGET]",
+                arguments: {
+                  TARGET: {
+                    type: Scratch.ArgumentType.STRING,
+                    menu: "spriteMenu",
+                  },
+                },
+              },
+              {
+                opcode: "detachSprite",
+                blockType: Scratch.BlockType.COMMAND,
+                text: "detach myself",
+              },
+              {
+                opcode: "attachedSprite",
+                blockType: Scratch.BlockType.REPORTER,
+                text: "sprite I'm attached to",
+              },
           ],
           menus: {
             MODE_MENU: {
@@ -323,6 +618,26 @@ class ThreeLooks {
                 acceptReporters: true,
                 items: "getSprites",
             },
+            models: {
+                acceptReporters: true,
+                items: "getModels",
+              },
+            texturefilter: {
+                acceptReporters: true,
+                items: ["nearest", "linear"],
+              },
+            showfaces: {
+                acceptReporters: true,
+                items: ["both", "front", "back"],
+              },
+            postypes: {
+                acceptReporters: true,
+                items: ["x", "y", "z"],
+              },
+            spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+              },
         },
       };
   }
@@ -334,7 +649,7 @@ class ThreeLooks {
   setMode({ MODE }, util) {
 
   }
-  
+
   getSprites() {
     const spriteNames = [];
     const targets = runtime.targets;
@@ -348,6 +663,11 @@ class ThreeLooks {
         }
     }
     return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
+  }
+
+  getModels() {
+    const curModels = [];
+    return curModels.length > 0 ? curModels : [{ text: "none", value: 0 }];
   }
 }
 
@@ -364,16 +684,16 @@ class ThreeSound {
           color2: extcolors.Sound[1],
           color3: extcolors.Sound[2],
           blocks: [
-              {
-                  opcode: 'helloWorld',
-                  blockType: BlockType.REPORTER,
-                  text: 'hello world',
-              }
+            {
+                opcode: 'playSound3D',
+                blockType: BlockType.COMMAND,
+                text: 'play sound [sound] at x:[x] y:[y] z:[z] with volume [volume] and range w:[wrange] h":[hrange] d:[drange]',
+            },
           ]
       };
   }
 
-  helloWorld() {
+  playSound3D() {
       return 'bork bork!';
   }
 }
@@ -391,17 +711,13 @@ class ThreeEvents {
           color2: extcolors.Events[1],
           color3: extcolors.Events[2],
           blocks: [
-              {
-                  opcode: 'helloWorld',
-                  blockType: BlockType.REPORTER,
-                  text: 'hello world',
-              }
+            {
+                opcode: 'WhenSpriteClicked3D',
+                blockType: BlockType.HAT,
+                text: 'When sprite clicked in 3D',
+            },
           ]
       };
-  }
-
-  helloWorld() {
-      return 'bork bork!';
   }
 }
 
@@ -472,12 +788,46 @@ class ThreeCamera {
           color2: extcolors.Camera[1],
           color3: extcolors.Camera[2],
           blocks: [
-              {
-                  opcode: 'helloWorld',
-                  blockType: BlockType.REPORTER,
-                  text: 'hello world',
-              }
-          ]
+        {
+            opcode: "attachSprite",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "attach myself to [TARGET]",
+            arguments: {
+              TARGET: {
+                type: Scratch.ArgumentType.STRING,
+                menu: "spriteMenu",
+              },
+            },
+          },
+          {
+            opcode: "detachSprite",
+            blockType: Scratch.BlockType.COMMAND,
+            text: "detach myself",
+          },
+          {
+            opcode: "attachedSprite",
+            blockType: Scratch.BlockType.REPORTER,
+            text: "sprite I'm attached to",
+          },
+          ],
+          menus: {
+            spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+            },
+            postypes: {
+                acceptReporters: true,
+                items: ["x", "y", "z"],
+              },
+              rottypes: {
+                acceptReporters: true,
+                items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
+              },
+            spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+              },
+        },
       };
   }
 
