@@ -772,12 +772,12 @@
             color3: extcolors.Sensing[2],
             blocks: [
               {
-                opcode: 'colllision3D',
+                opcode: 'colllisionMesh',
                 blockType: BlockType.BOOLEAN,
                 text: 'is sprite [Sprite1] colliding with sprite [Sprite2] by [ColType]',
             },
             {
-              opcode: 'colllisionhitbox',
+              opcode: 'colllisionHitbox',
               blockType: BlockType.BOOLEAN,
               text: 'is sprite [Sprite1] touching hitbox [Hitbox]',
           },
@@ -785,11 +785,11 @@
         };
     }
   
-    collision3D() {
+    collisionMesh() {
       return 'bork bork!';
   }
 
-  collisionhitbox() {
+  collisionGitbox() {
     return 'bork bork!';
 }
   }
@@ -1166,11 +1166,16 @@
             color2: extcolors.Lighting[1],
             color3: extcolors.Lighting[2],
             blocks: [
-                {
-                    opcode: 'helloWorld',
-                    blockType: BlockType.REPORTER,
-                    text: 'hello world',
-                }
+              {
+                opcode: 'CreateLight',
+                blockType: BlockType.REPORTER,
+                text: 'create lighting named [ID]',
+            },
+            {
+              opcode: 'DeleteLight',
+              blockType: BlockType.REPORTER,
+              text: 'delete lighting [ID]',
+          },
             ]
         };
     }
