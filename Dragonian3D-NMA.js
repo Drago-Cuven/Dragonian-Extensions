@@ -15,6 +15,16 @@
     {runtime} = vm;
     const scratchRenderer = runtime.renderer;
   
+    let Engine = "Turbowarp";
+
+    if (Scratch.extensions.isUSB) {
+        Engine = "UnSandBoxed";
+    } else if (Scratch.extensions.isPenguinMod) {
+        Engine = "PenguinMod";
+    } else if (Scratch.extensions.isNitroBolt) {
+        Engine = "NitroBolt";
+    }
+
     const extcolors = {
       Three: ["#0000ff", "#0000ff", "#0000ff"], 
       Motion: ["#4C97FF", "#0000ff", "#0000ff"],       // Blue
@@ -26,8 +36,6 @@
       Camera: ["#FF0000", "#0000ff", "#0000ff"],      // Pure Red
       Operators: ["#59C059", "#0000ff", "#0000ff"],   // Green
       Pen: ["#0FBD8C", "#0000ff", "#0000ff"],         // Teal
-      Lighting: ["#C9A87C", "#0000ff", "#0000ff"],    // Cream
-      Hitboxes: ["#6A6865", "#0000ff", "#0000ff"]     // Gravel
   };
   
     const extimages = {};
@@ -607,6 +615,253 @@
                   blockType: Scratch.BlockType.REPORTER,
                   text: "sprite I'm attached to",
                 },
+
+                "---",
+
+                {
+                  blockType: Scratch.BlockType.LABEL,
+                  text: "Lighting",
+                },
+
+
+                "---",
+
+                {
+                  opcode: "getAllLights",
+                  blockType: Scratch.BlockType.ARRAY,
+                  text: "get all light [LIGHTSTUFF]",
+                  arguments: {
+                    LIGHTSTUFF: { type: Scratch.ArgumentType.STRING, menu: "LightAttributes", defaultValue: "name" },
+                  }
+                },
+                {
+                  opcode: "nomorelights",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "delete all lights",
+                },
+                {
+                  opcode: "createLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "create [TYPE] light named [LIGHT]",
+                  arguments: {
+                    TYPE: { type: Scratch.ArgumentType.STRING, menu: "LightTypes", defaultValue: "Spot" },
+                    LIGHT: { type: Scratch.ArgumentType.STRING, defaultValue: "light" },
+                  },
+                },
+                {
+                  opcode: "deleteLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "delete light [LIGHT]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightType",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] type to [TYPE]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    TYPE: { type: Scratch.ArgumentType.STRING, menu: "LightTypes", defaultValue: "Spot" },
+                  },
+                },
+                {
+                  opcode: "SetPositionLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set position of light [LIGHT] to x:[X] y:[Y] z:[Z]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  },
+                },
+                {
+                  opcode: "SetRotateLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set rotation of light [LIGHT] to r:[R] p:[P] y:[Y]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+
+                  },
+                },
+                {
+                  opcode: "PositionLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "change position of light [LIGHT] by x:[X] y:[Y] z:[Z]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    X: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Z: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  },
+                },
+                {
+                  opcode: "RotateLight",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "change rotation of light [LIGHT] by r:[R] p:[P] y:[Y]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    R: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    P: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                    Y: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  },
+                },
+                {
+                  opcode: "LightPosition",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] [postype] position",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    postype: { type: Scratch.ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+                  },
+                },
+                {
+                  opcode: "LightRotation",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] [rottype] rotation",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    rottype: { type: Scratch.ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+                  },
+                },
+                {
+                  opcode: "LightPositionArray",
+                  blockType: Scratch.BlockType.ARRAY,
+                  text: "light [LIGHT] position",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "LightPositionObject",
+                  blockType: Scratch.BlockType.OBJECT,
+                  text: "light [LIGHT] position",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "LightRotationArray",
+                  blockType: Scratch.BlockType.ARRAY,
+                  text: "light [LIGHT] rotation",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "LightRotationObject",
+                  blockType: Scratch.BlockType.OBJECT,
+                  text: "light [LIGHT] rotation",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightColor",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] color to [COLOR]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    COLOR: { type: Scratch.ArgumentType.COLOR, defaultValue: "#000000" },
+                  },
+                },
+                {
+                  opcode: "getLightColor",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] color",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightIntensity",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] intensity to [INTENSITY]%",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    INTENSITY: { type: Scratch.ArgumentType.NUMBER, defaultValue: 100 },
+                  },
+                },
+                {
+                  opcode: "getLightIntensity",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] Intensity",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightDistance",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] distance to [DISTANCE]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    DISTANCE: { type: Scratch.ArgumentType.NUMBER, defaultValue: 1000 },
+                  },
+                },
+                {
+                  opcode: "getLightDistance",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] distance",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightAngle",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] angle to [ANGLE]",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    ANGLE: { type: Scratch.ArgumentType.ANGLE, defaultValue: 45 },
+                  },
+                },
+                {
+                  opcode: "getLightAngle",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] angle",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightPenumbra",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] penumbra to [PENUMBRA]%",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    PENUMBRA: { type: Scratch.ArgumentType.NUMBER, defaultValue: 0 },
+                  },
+                },
+                {
+                  opcode: "getLightPenumbra",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] penumbra",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
+                {
+                  opcode: "setLightDecay",
+                  blockType: Scratch.BlockType.COMMAND,
+                  text: "set light [LIGHT] decay to [DECAY]%",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                    DECAY: { type: Scratch.ArgumentType.NUMBER, defaultValue: 2 },
+                  },
+                },
+                {
+                  opcode: "getLightDecay",
+                  blockType: Scratch.BlockType.REPORTER,
+                  text: "light [LIGHT] decay",
+                  arguments: {
+                    LIGHT: { type: Scratch.ArgumentType.STRING, menu: "Lights", },
+                  },
+                },
             ],
             menus: {
               MODE_MENU: {
@@ -634,17 +889,26 @@
                   acceptReporters: true,
                   items: ["x", "y", "z"],
                 },
-              spriteMenu: {
+              rottypes: {
                   acceptReporters: true,
-                  items: "getSprites",
+                  items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
+                },
+              Lights: {
+                  acceptReporters: true,
+                  items: "getLights",
+                },
+              LightTypes: {
+                  acceptReporters: true,
+                  items: ["Ambient", "Directional", "Point", "Spot"],
+                },
+              LightAttributes: {
+                  acceptReporters: true,
+                  items: ["name", "type", "x", "y", "z", { text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }, "color", "intensity", "distance", "angle", "penumbra", "decay"],
                 },
           },
         };
     }
-  
-    helloWorld() {
-        return 'bork bork!';
-    }
+
   
     setMode({ MODE }, util) {
   
@@ -668,6 +932,11 @@
     getModels() {
       const curModels = [];
       return curModels.length > 0 ? curModels : [{ text: "none", value: 0 }];
+    }
+
+    getLights() {
+      const curLights = [];
+      return curLights.length > 0 ? curLights : [{ text: "none", value: 0 }];
     }
   }
   
@@ -771,27 +1040,137 @@
             color2: extcolors.Sensing[1],
             color3: extcolors.Sensing[2],
             blocks: [
-              {
-                opcode: 'colllisionMesh',
-                blockType: BlockType.BOOLEAN,
-                text: 'is sprite [Sprite1] colliding with sprite [Sprite2] by [ColType]',
+            {
+                opcode: 'createHitbox',
+                blockType: BlockType.COMMAND,
+                text: 'give [SPRITE] a [SHAPE] shaped hitbox named [HITBOX]',
+                arguments: {
+                  SHAPE: { type: ArgumentType.STRING, menu: "shapes" },
+                  HITBOX: { type: ArgumentType.STRING, defaultValue: "my hitbox" },
+                  SPRITE: { type: ArgumentType.STRING, menu: "spriteMenu" },
+                },
             },
             {
-              opcode: 'colllisionHitbox',
+              opcode: 'deleteHitbox',
+              blockType: BlockType.COMMAND,
+              text: 'delete hitbox [HITBOX] of [SPRITE]',
+              arguments: {
+                HITBOX: { type: ArgumentType.STRING, defaultValue: "my hitbox" },
+                SPRITE: { type: ArgumentType.STRING, menu: "spriteMenu" },
+              },
+            },
+            {
+              opcode: 'createShape',
+              blockType: BlockType.COMMAND,
+              text: 'add hitbox shape [NAME] with data [DATA]',
+              arguments: {
+                NAME: { type: ArgumentType.STRING, defaultValue: "my shape" },
+                DATA: { type: ArgumentType.STRING, defaultValue: "0 0 0" },
+              },
+            },
+            {
+              opcode: 'removeShape',
+              blockType: BlockType.COMMAND,
+              text: 'remove hitbox shape [NAME]',
+              arguments: {
+                NAME: { type: ArgumentType.STRING, menu: "shapes" },
+              },
+            },
+            {
+              opcode: 'collisionMesh',
               blockType: BlockType.BOOLEAN,
-              text: 'is sprite [Sprite1] touching hitbox [Hitbox]',
-          },
-            ]
+              text: 'is sprite [Sprite1] touching sprite [Sprite2] by mesh?',
+              arguments: {
+                Sprite1: { type: ArgumentType.STRING, menu: "spriteMenu" },
+                Sprite2: { type: ArgumentType.STRING, menu: "spriteMenu" },
+              },
+            },
+            {
+              opcode: 'collisionHitbox',
+              blockType: BlockType.BOOLEAN,
+              text: 'is hitbox [TAG1] of sprite [SPRITE1] colliding with hitbox [TAG2] of sprite [SPRITE2]?',
+              arguments: {
+                TAG1: { type: ArgumentType.STRING, defaultValue: "hitbox" },
+                SPRITE1: { type: ArgumentType.STRING, menu: "spriteMenu" },
+                TAG2: { type: ArgumentType.STRING, defaultValue: "hitbox" },
+                SPRITE2: { type: ArgumentType.STRING, menu: "spriteMenu"},
+            },
+            },
+            {
+              opcode: 'hitboxesof',
+              blockType: BlockType.ARRAY,
+              text: 'hitboxes of [SPRITE]',
+              arguments: {
+                SPRITE: { type: ArgumentType.STRING, menu: "spriteMenu" },
+              },
+            },
+            ],
+            menus: {
+              shapes: {
+                acceptReporters: true,
+                items: "getShapes",
+              },
+              spriteMenu: {
+                acceptReporters: true,
+                items: "getSprites",
+              },
+            }
         };
     }
   
-    collisionMesh() {
+    createHitbox() {
       return 'bork bork!';
   }
 
-  collisionGitbox() {
-    return 'bork bork!';
-}
+    deleteHitbox() {
+      return 'bork bork!';
+    }
+
+    createShape() {
+      return 'bork bork!';
+    }
+
+    removeShape() {
+      return 'bork bork!';
+    }
+
+    collisionMesh() {
+      return 'bork bork!';
+    }
+
+    collisionHitbox() {
+      return 'bork bork!';
+    } 
+
+    hitboxesof() {
+      return 'bork bork!';
+    }
+
+    getShapes() {
+      const curShapes = [];
+      return curShapes.length > 0 ? curShapes : [{ text: "none", value: 0 }];
+    }
+
+    getSprites() {
+      const spriteNames = [];
+      const targets = runtime.targets;
+      for (let index = 1; index < targets.length; index++) {
+          const target = targets[index];
+          if (target.isOriginal && target.sprite) {
+              spriteNames.push({
+                  text: target.sprite.name,
+                  value: target.sprite.name
+              });
+          }
+      }
+      return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
+    }
+
+    getHitboxes() {
+      const curHitboxes = [];
+      return curHitboxes.length > 0 ? curHitboxes : [];
+    }
+    
   }
   
   class ThreeCamera {
@@ -1153,65 +1532,6 @@
     }
   }
   
-  class ThreeLighting {
-    constructor() {
-  
-    }
-  
-    getInfo() {
-        return {
-            id: 'Dragonian3DLighting',
-            name: 'Lighting 3D',
-            color1: extcolors.Lighting[0],
-            color2: extcolors.Lighting[1],
-            color3: extcolors.Lighting[2],
-            blocks: [
-              {
-                opcode: 'CreateLight',
-                blockType: BlockType.REPORTER,
-                text: 'create lighting named [ID]',
-            },
-            {
-              opcode: 'DeleteLight',
-              blockType: BlockType.REPORTER,
-              text: 'delete lighting [ID]',
-          },
-            ]
-        };
-    }
-  
-    helloWorld() {
-        return 'bork bork!';
-    }
-  }
-  
-  class ThreeHitboxes {
-    constructor() {
-  
-    }
-  
-    getInfo() {
-        return {
-            id: 'Dragonian3DHitboxes',
-            name: 'Hitboxes 3D',
-            color1: extcolors.Hitboxes[0],
-            color2: extcolors.Hitboxes[1],
-            color3: extcolors.Hitboxes[2],
-            blocks: [
-                {
-                    opcode: 'helloWorld',
-                    blockType: BlockType.REPORTER,
-                    text: 'hello world',
-                }
-            ]
-        };
-    }
-  
-    helloWorld() {
-        return 'bork bork!';
-    }
-  }
-  
   class ThreePen {
     constructor() {
   
@@ -1248,8 +1568,6 @@
   Scratch.extensions.register(new ThreeSensing());
   Scratch.extensions.register(new ThreeCamera());
   Scratch.extensions.register(new ThreeOperators());
-  Scratch.extensions.register(new ThreeLighting());
-  Scratch.extensions.register(new ThreeHitboxes());
   Scratch.extensions.register(new ThreePen());
   
   })(Scratch);
