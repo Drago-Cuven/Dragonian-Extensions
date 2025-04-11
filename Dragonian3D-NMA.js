@@ -33,7 +33,7 @@
       Events: ["#FFBF00", "#0000ff", "#0000ff"],      // Yellow
       Control: ["#FFAB19", "#0000ff", "#0000ff"],     // Orange
       Sensing: ["#5CB1D6", "#0000ff", "#0000ff"],     // Light Blue
-      Camera: ["#FF0000", "#0000ff", "#0000ff"],      // Pure Red
+      Camera: ["#FF4C4C", "#0000ff", "#0000ff"],      // Pure Red
       Operators: ["#59C059", "#0000ff", "#0000ff"],   // Green
       Pen: ["#0FBD8C", "#0000ff", "#0000ff"],         // Teal
   };
