@@ -13,7 +13,18 @@
 
   const {Cast, BlockType, ArgumentType, vm} = Scratch,
   {runtime} = vm;
-  const scratchRenderer = runtime.renderer;
+  const renderer = runtime.renderer;
+  const IN_3D = "THREE.in3d";
+  const OBJECT = "THREE.object";
+  const THREE_DIRTY = "THREE.dirty";
+  const SIDE_MODE = "THREE.sidemode";
+  const TEX_FILTER = "THREE.texfilter";
+  const Z_POS = "THREE.zpos";
+  const Z_STRETCH = "THREE.zstretch";
+  const YAW = "THREE.yaw";
+  const PITCH = "THREE.pitch";
+  const ROLL = "THREE.roll";
+  const ATTACHED_TO = "THREE.attachedto";
 
   let Engine = "Turbowarp";
 
@@ -73,17 +84,6 @@
     THREE.OrbitControls = OrbitControls;
     THREE.GLTFLoader = GLTFLoader;
     THREE.OBJLoader = OBJLoader;
-    const IN_3D = "THREE.in3d";
-    const OBJECT = "THREE.object";
-    const THREE_DIRTY = "THREE.dirty";
-    const SIDE_MODE = "THREE.sidemode";
-    const TEX_FILTER = "THREE.texfilter";
-    const Z_POS = "THREE.zpos";
-    const Z_STRETCH = "THREE.zstretch";
-    const YAW = "THREE.yaw";
-    const PITCH = "THREE.pitch";
-    const ROLL = "THREE.roll";
-    const ATTACHED_TO = "THREE.attachedto";
 
     console.log('Three.js initialized with full URL imports:', THREE);
     
@@ -126,7 +126,6 @@
     const scenes = [];
     const cameras = [];
     let activeScene = null;
-    let renderer;
     let activeCamera = null;
     let isInitialized = false;
     let currentSprite = null;
@@ -134,6 +133,88 @@
     const modelObjects = {};
 
   
+    const PATCHES_ID = "__patches" + "Dragonian3D";
+    const patch = (obj, functions) => {
+      if (obj[PATCHES_ID]) return;
+      obj[PATCHES_ID] = {};
+      for (const name in functions) {
+        const original = obj[name];
+        obj[PATCHES_ID][name] = obj[name];
+        if (original) {
+          obj[name] = function(...args) {
+            const callOriginal = (...ogArgs) => original.call(this, ...ogArgs);
+            return functions[name].call(this, callOriginal, ...args);
+          };
+        } else {
+          obj[name] = function (...args) {
+            return functions[name].call(this, () => {}, ...args);
+          }
+        }
+      }
+    }
+    const _unpatch = (obj) => {
+      if (!obj[PATCHES_ID]) return;
+      for (const name in obj[PATCHES_ID]) {
+        obj[name] = obj[PATCHES_ID][name];
+      }
+      delete obj[PATCHES_ID];
+    }
+  
+    const Skin = renderer.exports.Skin;
+  
+    // this class was originally made by Vadik1
+    class SimpleSkin extends Skin {
+      constructor(id, renderer) {
+        super(id, renderer);
+        const gl = renderer.gl;
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        //gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([0,255,0,255]));
+        this._texture = texture;
+        /**
+         * @type {[number, number]}
+         */
+        this._rotationCenter = [240, 180];
+        /**
+         * @type {[number, number]}
+         */
+        this._size = [480, 360];
+      }
+      dispose() {
+        if (this._texture) {
+          this._renderer.gl.deleteTexture(this._texture);
+          this._texture = null;
+        }
+        super.dispose();
+      }
+      set size(value) {
+        this._size = value;
+        this._rotationCenter = [value[0] / 2, value[1] / 2];
+      }
+      get size() {
+        return this._size;
+      }
+      getTexture(scale) {
+        return this._texture || super.getTexture(scale);
+      }
+      setContent(textureData) {
+        const gl = this._renderer.gl;
+        gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          textureData
+        );
+        this.emitWasAltered();
+      }
+    }
 
     class ThreeBase {
         constructor() {
@@ -210,7 +291,295 @@
         }
     
         initializeScene() {
+          if (this.scene) return;
+    
+          // create everything
+          this.scene = new THREE.Scene();
+          this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+          this.camera.position.set(0, 0, 200);
+          this.camera.lookAt(0, 0, 0);
+          this.camera.near = 0.5;
+          this.camera.far = 4800;
+    
+          this.renderer = new THREE.WebGLRenderer();
+          this.renderer.useLegacyLights = true;
+          this.renderer.setClearAlpha(0);
+    
+          // create the scratch stuff
+          this.threeSkinId = renderer._nextSkinId++;
+          this.threeSkin = new SimpleSkin(
+            this.threeSkinId,
+            renderer
+          );
+          renderer._allSkins[this.threeSkinId] = this.threeSkin;
+          this.THREErawableId = renderer.createDrawable("pen");
+          // @ts-expect-error not typed
+          renderer._allDrawables[this.THREErawableId].customDrawableName = "CST 3D Layer"
+          renderer.updateDrawableSkinId(
+            this.THREErawableId,
+            this.threeSkinId
+          );
+    
+          this.stageSizeEvent = (() => {
+            this.updateScale();
+          }).bind(this);
+          vm.on("STAGE_SIZE_CHANGED", this.stageSizeEvent);
+    
+          this.stampRenderTarget = new THREE.WebGLRenderTarget();
+    
+          this.raycaster = new THREE.Raycaster();
+    
+          this.applyPatches();
+          this.updateScale();
+        }
+    
+        uninitializeScene() {
+          // delete everything
+          for (const dr of renderer._allDrawables) {
+            if (!dr) continue;
+            this.disable3DForDrawable(dr.id);
+            delete dr[IN_3D];
+            delete dr[OBJECT];
+          }
+          if (this.scene) this.scene.clear();
+          this.scene = undefined;
+          this.camera = undefined;
+          if (this.renderer) this.renderer.dispose();
+          this.renderer = undefined;
+          if (this.threeSkinId)
+            this.threeSkin.dispose();
+          this.threeSkinId = undefined;
+          if (this.THREErawableId)
+            renderer._allDrawables[this.THREErawableId].dispose();
+          this.THREErawableId = undefined;
+          if (this.stageSizeEvent)
+            vm.off("STAGE_SIZE_CHANGED", this.stageSizeEvent);
+          this.stageSizeEvent = undefined;
+          if (this.stampRenderTarget)
+            this.stampRenderTarget.dispose();
+          this.stampRenderTarget = undefined;
+    
+          runtime.requestRedraw();
+        }
 
+        updateScale() {
+          const w = runtime.stageWidth || 480;
+          const h = runtime.stageHeight || 360;
+    
+          this.threeSkin.size = [w, h];
+    
+          this.camera.aspect = w / h;
+          this.renderer.setSize(w, h);
+          this.stampRenderTarget.setSize(w, h);
+          this.camera.updateProjectionMatrix();
+    
+          this.updateRenderer();
+        }
+        
+        applyPatches() {
+          const Drawable = renderer.exports.Drawable;
+    
+          const THREE = this;
+          patch(Drawable.prototype, {
+            getVisible(og) {
+              if (this[IN_3D]) return false;
+              return og();
+            },
+            updateVisible(og, value) {
+              if (this[IN_3D]) {
+                const o = this[OBJECT];
+                if (o.visible !== value) {
+                  o.visible = value;
+                  THREE.updateRenderer();
+                }
+              }
+              return og(value);
+            },
+            updatePosition(og, position) {
+              if (this[IN_3D]) {
+                const o = this[OBJECT];
+                o.position.x = position[0];
+                o.position.y = position[1];
+                THREE.updateRenderer();
+              }
+              return og(position);
+            },
+            updateDirection(og, direction) {
+              if (this[IN_3D]) {
+                this[ROLL] = THREE.MathUtils.degToRad(direction);
+                THREE.updateSpriteAngle(this);
+                THREE.updateRenderer();
+              }
+              return og(direction);
+            },
+            updateScale(og, scale) {
+              if (this[IN_3D]) {
+                const obj = this[OBJECT];
+                obj.scale.x = (obj._sizeX ?? 100) / 100 * scale[0];
+                obj.scale.y = (obj._sizeY ?? 100) / 100 * scale[1];
+                obj.scale.z = (obj._sizeZ ?? 100) / 100 * (this[Z_STRETCH] ?? scale[0]);
+                THREE.updateRenderer();
+              }
+              return og(scale);
+            },
+            dispose(og) {
+              if (this[OBJECT]) {
+                this[OBJECT].removeFromParent();
+                this[OBJECT].material.dispose();
+                if (this[OBJECT].material.map) this[OBJECT].material.map.dispose();
+                this[OBJECT].geometry.dispose();
+                this[OBJECT] = null;
+                THREE.updateRenderer();
+              }
+              return og();
+            },
+            _skinWasAltered(og) {
+              og();
+              if (this[IN_3D]) {
+                THREE.updateDrawableSkin(this);
+                THREE.updateRenderer();
+              }
+            }
+          });
+          
+          patch(renderer, {
+            draw(og) {
+              if (this[THREE_DIRTY]) {
+                // Do a 3D redraw
+                THREE.doUpdateRenderer();
+                this[THREE_DIRTY] = false;
+              }
+              return og();
+            },
+    
+            isTouchingDrawables(og, drawableID, candidateIDs = this._drawList) {
+              const dr = this._allDrawables[drawableID];
+    
+              if (dr[IN_3D]) {
+                // 3D sprites can't collide with 2D
+                const candidates = candidateIDs.filter(id => this._allDrawables[id][IN_3D]);
+                for (const candidate of candidates) {
+                  if (THREE.touching3D(dr[OBJECT], this._allDrawables[candidate][OBJECT]))
+                    return true;
+                }
+                return false;
+              }
+    
+              return og(drawableID, candidateIDs.filter(id => !(this._allDrawables[id][IN_3D])));
+            },
+    
+            penStamp(og, penSkinID, stampID) {
+              const dr = this._allDrawables[stampID];
+              if (!dr) return;
+              if (dr[IN_3D]) {
+                // Draw the sprite to the 3D drawable then stamp it
+                THREE.renderer.render(dr[OBJECT], THREE.camera);
+                this._allSkins[THREE.threeSkinId].setContent(
+                  THREE.renderer.domElement
+                );
+                og(penSkinID, THREE.THREErawableId);
+                THREE.updateRenderer();
+                return;
+              }
+              return og(penSkinID, stampID);
+            },
+    
+            pick(og, centerX, centerY, touchWidth, touchHeight, candidateIDs) {
+              const pick2d = og(centerX, centerY, touchWidth, touchHeight, candidateIDs);
+              if (pick2d !== -1) return pick2d;
+              
+              if (!THREE.raycaster) return false;
+    
+              const bounds = this.clientSpaceToScratchBounds(centerX, centerY, touchWidth, touchHeight);
+              if (bounds.left === -Infinity || bounds.bottom === -Infinity) {
+                  return false;
+              }
+    
+              const candidates =
+                (candidateIDs || this._drawList).map(id => this._allDrawables[id]).filter(dr => dr[IN_3D]);
+              if (candidates.length <= 0) return -1;
+    
+              const scratchCenterX = (bounds.left + bounds.right) / this._gl.canvas.clientWidth;
+              const scratchCenterY = (bounds.top + bounds.bottom) / this._gl.canvas.clientHeight;
+              THREE.raycaster.setFromCamera(new THREE.Vector2(scratchCenterX, scratchCenterY), THREE.camera);
+    
+              const object = THREE.raycaster.intersectObject(THREE.scene, true)[0]?.object;
+              if (!object) return -1;
+              const drawable = candidates.find(c => (c[IN_3D] && c[OBJECT] === object));
+              if (!drawable) return -1;
+              return drawable._id;
+            },
+            drawableTouching(og, drawableID, centerX, centerY, touchWidth, touchHeight) {
+              const drawable = this._allDrawables[drawableID];
+              if (!drawable) {
+                  return false;
+              }
+              if (!drawable[IN_3D]) {
+                return og(drawableID, centerX, centerY, touchWidth, touchHeight);
+              }
+      
+              if (!THREE.raycaster) return false;
+      
+              const bounds = this.clientSpaceToScratchBounds(centerX, centerY, touchWidth, touchHeight);
+              const scratchCenterX = (bounds.left + bounds.right) / this._gl.canvas.clientWidth;
+              const scratchCenterY = (bounds.top + bounds.bottom) / this._gl.canvas.clientHeight;
+              THREE.raycaster.setFromCamera(new THREE.Vector2(scratchCenterX, scratchCenterY), THREE.camera);
+      
+              const intersect = (THREE.raycaster.intersectObject(THREE.scene, true));
+              const object = intersect[0]?.object;
+              return object === drawable[OBJECT];
+            },
+            extractDrawableScreenSpace(og, drawableID) {
+              const drawable = this._allDrawables[drawableID];
+              if (!drawable)
+                throw new Error(`Could not extract drawable with ID ${drawableID}; it does not exist`);
+              if (!drawable[IN_3D])
+                return og(drawableID);
+    
+              // Draw the sprite to the 3D drawable then extract it
+              THREE.renderer.render(drawable[OBJECT], THREE.camera);
+              this._allSkins[THREE.threeSkinId].setContent(
+                THREE.renderer.domElement
+              );
+              const extracted = og(THREE.THREErawableId);
+              THREE.updateRenderer();
+              return extracted;
+            },
+          });
+          patch(renderer.exports.Skin, {
+            dispose(og) {
+              if (this._3dCachedTexture) this._3dCachedTexture.dispose();
+              og();
+            },
+            _setTexture(og, textureData) {
+              if (this._3dCachedTexture) {
+                this._3dCachedTexture.dispose();
+                this._3dCachedTexture = null;
+                const returnValue = og(textureData);
+                THREE.getThreeTextureFromSkin(this);
+                return returnValue;
+              }
+              return og(textureData);
+            },
+          });
+        }
+
+        updateRenderer() {
+          // Schedule a 3D redraw
+          renderer[THREE_DIRTY] = true;
+          runtime.requestRedraw();
+        }
+    
+        // pushes the current 3d render state into the drawable
+        doUpdateRenderer() {
+          this.initializeScene();
+          this.renderer.render(this.scene, this.camera);
+    
+          if (!this.threeSkinId) return;
+    
+          this.threeSkin.setContent(
+            this.renderer.domElement
+          );
         }
     
         toggleScene(args) {
@@ -222,14 +591,17 @@
         }
     
         setSkyboxColor(args) {
-
+          if (!this.scene) return;
+          const color = new THREE.Color(Cast.toString(args.COLOR));
+          this.scene.background = color;
+          this.updateRenderer();
         }
 
         setSkyboxTexture(args) {
 
         }
     
-        init() {
+        initializeScene() {
 
         }
     
