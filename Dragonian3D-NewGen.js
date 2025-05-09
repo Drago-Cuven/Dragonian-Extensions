@@ -867,6 +867,11 @@ class ThreeLooks {
           color2: extcolors.Looks[1],
           color3: extcolors.Looks[2],
           blocks: [
+              {
+                opcode: "existingModels",
+                blockType: BlockType.ARRAY,
+                text: "existing models",
+              },
             {
               opcode: "setMode",
               blockType: BlockType.COMMAND,
@@ -930,11 +935,6 @@ class ThreeLooks {
                 MODEL: { type: ArgumentType.STRING, menu: "models" },
               }
             },
-              {
-                opcode: "existingModels",
-                blockType: BlockType.ARRAY,
-                text: "existing models",
-              },
               {
                 opcode: "setTextureFilter",
                 blockType: BlockType.COMMAND,
