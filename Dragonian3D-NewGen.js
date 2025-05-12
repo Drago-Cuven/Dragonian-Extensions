@@ -123,8 +123,11 @@
       };
 
     let currentCamera = null; // Variable to store the current camera
-    const scenes = [];
-    const cameras = [];
+    let scenes = [{ 
+      name: "default",
+      cameras: defaultcameraSettings,
+      lights: {}
+    }];
     let activeScene = null;
     let activeCamera = null;
     let isInitialized = false;
@@ -132,6 +135,28 @@
     const spriteObjects = {};
     const modelObjects = {};
 
+function createS3DCamera(name, scene, type) {
+
+  const getscene = scenes.find(s => s.name === scene);
+
+  if (!getscene) {
+    console.error(`Scene "${scene}" does not exist.`);
+    return;
+  }
+
+  if (getscene.cameras[name]) {
+    console.error(`Camera "${name}" already exists in scene "${scene}".`);
+    return;
+  }
+
+
+  console.log(`Camera "${name}" can be created in scene "${scene}".`);
+}
+
+
+    function createS3DScene(name, scene, type){
+
+    };
   
     const PATCHES_ID = "__patches" + "Dragonian3D";
     const patch = (obj, functions) => {
