@@ -1715,7 +1715,34 @@ class ThreeSensing {
 
 class ThreeCamera {
   constructor() {
-    this.cameras = cameras
+    // 1. Find the active scene object by name
+    const sceneObj = scenes.find(s => s.name === curScene);
+    if (!sceneObj) {
+      throw new Error(`Active scene "${curScene}" not found`);
+    }
+
+    // 2. Now grab its cameras map
+    this.cameras = sceneObj.cameras;
+
+    // 3. (Optional) store scene reference
+    this.scene = sceneObj;
+  }
+
+  // Example method: list camera names
+  listCameraNames() {
+    return Object.keys(this.cameras);
+  }
+
+  // Switch the active camera by name
+  switchCamera(name) {
+    if (!this.cameras[name]) {
+      console.warn(`No camera named "${name}" in scene "${this.scene.name}"`);
+      return;
+    }
+    // Set the global curCamera
+    curCamera = name;
+    // Optionally store the actual Three.js camera instance
+    this.current3D = this.cameras[name].camera3D;
   }
 
   getInfo() {
