@@ -248,7 +248,42 @@ function createS3DScene(name, force) {
     curCamera = cameraName;
   }
 
+function switchScene(sceneName) {
+  // If explicitly disabling 3D
+  if (sceneName === null) {
+    curScene = null;
+    curCamera = null;
+    return;
+  }
+
+  const target = String(sceneName).trim();
+  const sceneObj = scenes.find(s => s.name === target);
+  if (!sceneObj) {
+    // scene not found → disable 3D
+    curScene = null;
+    curCamera = null;
+    return;
+  }
+
+  // Activate the scene
+  curScene = target;
+
+  // Ensure the scene has a curCamera; if not, default to the first camera or null
+  if (sceneObj.curCamera && sceneObj.cameras[sceneObj.curCamera]) {
+    curCamera = sceneObj.curCamera;
+  } else {
+    // pick first defined camera name, or null
+    const names = Object.keys(sceneObj.cameras);
+    curCamera = names.length ? names[0] : null;
+    sceneObj.curCamera = curCamera; // store back
+  }
+}
+
+/**
+ * Returns the active Three.js camera instance, or null.
+ */
 function getActiveThreeCamera() {
+  if (!curScene || !curCamera) return null;
   const sceneObj = scenes.find(s => s.name === curScene);
   if (!sceneObj) return null;
   const camEntry = sceneObj.cameras[curCamera];
