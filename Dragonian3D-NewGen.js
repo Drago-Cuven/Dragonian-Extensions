@@ -154,9 +154,10 @@ function createS3DCamera(name, scene, type) {
 }
 
 
-    function createS3DScene(name, scene, type){
+  function createS3DScene(name, scene, type){
 
-    };
+  
+  };
   
     const PATCHES_ID = "__patches" + "Dragonian3D";
     const patch = (obj, functions) => {
@@ -261,12 +262,12 @@ function createS3DCamera(name, scene, type) {
                     {
                         opcode: "toggleScene",
                         blockType: BlockType.COMMAND,
-                        text: "scene [ONOFF]",
+                        text: "set 3d scene to [SCENE]",
                         arguments: {
-                            ONOFF: { 
+                            SCENE: { 
                                 type: ArgumentType.STRING, 
-                                menu: "onoff", 
-                                defaultValue: "on" 
+                                menu: "Scenes", 
+                                defaultValue: "none" 
                             },
                         },
                     },
@@ -298,9 +299,9 @@ function createS3DCamera(name, scene, type) {
                     },
                 ],
                 menus: {
-                    onoff: {
+                    Scenes: {
                         acceptReporters: true,
-                        items: ["on", "off"],
+                        items: ["none"],
                     },
                     MODE_MENU: {
                         acceptReporters: true,
