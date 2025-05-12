@@ -5,7 +5,6 @@
  * License: MIT & LGPLv3 License
  * Do not remove this comment
  **/
-
 (async function (Scratch) {
   if (!Scratch.extensions.unsandboxed) {
     throw new Error(`"DragonianUSB3D" must be run unsandboxed.`);
@@ -65,11 +64,10 @@
   document.head.appendChild(importMap);
 
   try {
-    // Import core Three.js (using namespace import)
     const threeModule = await import('three');
-    window.THREE = threeModule; // Attach entire module to global scope
+    window.THREE = threeModule; 
 
-    // Import addons with full URLs using named imports
+
     const { OrbitControls } = await import(
       'https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/controls/OrbitControls.js'
     );
@@ -82,7 +80,7 @@
       'https://cdn.jsdelivr.net/npm/three@0.175.0/examples/jsm/loaders/OBJLoader.js'
     );
 
-    // Attach addons to THREE namespace
+    // Attach addons to THREE namespace cus otherwise it'll just screw itself
     THREE.OrbitControls = OrbitControls;
     THREE.GLTFLoader = GLTFLoader;
     THREE.OBJLoader = OBJLoader;
@@ -96,7 +94,7 @@
 
   //setup here
 
-    // Global camera settings with default values
+    // Global camera settings with default values so i don't forget like a dummy
     const defaultcameraSettings = {
         name: 'Camera',
         type: 'perspective',
@@ -138,30 +136,30 @@
     const modelObjects = {};
 
 function createS3DCamera(name, sceneName, type) {
-  // 1. Find the scene object by name
+  // 1. Find the scene object by name :p
   const scene = scenes.find(s => s.name === sceneName);
   if (!scene) {
     console.error(`Scene "${sceneName}" does not exist.`);
     return;
   }
 
-  // 2. Cancel if a camera with that name already exists in this scene
+  // 2. Cancel if a camera with that name already exists in this scene :P
   if (scene.cameras[name]) {
     console.error(`Camera "${name}" already exists in scene "${sceneName}".`);
     return;
   }
 
-  // 3. Build a fresh settings object from defaultcameraSettings
+  // 3. Build a fresh settings object from defaultcameraSettings :3
   const settings = {
     ...defaultcameraSettings,
     name: String(name).trim(),
     type: String(type).trim().toLowerCase()
   };
 
-  // 4. Create the actual Three.js camera instance
+  // 4. Create the actual Three.js camera instance cus i have too 
   let camera3D;
   if (settings.type === 'orthographic') {
-    // Calculate half-width/height for orthographic frustum
+    // Calculate half-width/height for orthographic frustum because thats apparently a thing
     const halfH = settings.zoom / 2;
     const halfW = halfH * settings.aspect;
     camera3D = new THREE.OrthographicCamera(
@@ -169,7 +167,7 @@ function createS3DCamera(name, sceneName, type) {
       settings.minclip, settings.maxclip
     );
   } else {
-    // Default to a PerspectiveCamera
+    // Default to a PerspectiveCamera cus its the proper friggin way
     camera3D = new THREE.PerspectiveCamera(
       settings.fov,
       settings.aspect,
@@ -178,7 +176,7 @@ function createS3DCamera(name, sceneName, type) {
     );
   }
 
-  // 5. Apply position, orientation, zoom, look-at, etc.
+  // 5. Apply position, orientation, zoom, look-at, etc etc -_-.
   camera3D.position.set(settings.x, settings.y, settings.z);
   camera3D.up.set(settings.upX, settings.upY, settings.upZ);
   camera3D.lookAt(settings.lookAtX, settings.lookAtY, settings.lookAtZ);
@@ -190,10 +188,10 @@ function createS3DCamera(name, sceneName, type) {
   camera3D.zoom = settings.zoom;
   camera3D.updateProjectionMatrix();
 
-  // 6. Grab the auto-assigned Three.js ID and store it in settings
+  // 6. Grab the real Three.js ID cus it does that, and store it in settings 
   settings.id = camera3D.id;
 
-  // 7. Finally, add this camera into the scene’s cameras object
+  // 7. now that all that stuffs is done, add this camera into the scene’s cameras object
   scene.cameras[settings.name] = {
     settings,
     camera3D
@@ -210,14 +208,14 @@ function createS3DScene(name, force) {
   const sceneName = String(name).trim();
   if (!sceneName) return;
 
-  // Check if a scene with that name already exists
+  // Check if a scene with that name already exists cus of scratch safety and allat
   const existingIndex = scenes.findIndex(s => s.name === sceneName);
   if (existingIndex !== -1) {
     if (!force) return;           // cancel if not forcing
     scenes.splice(existingIndex, 1); // remove the old scene
   }
 
-  // Build the new scene metadata object
+  // Build the new scene metadata object cus thats how i organize stuff
   const newSceneMeta = {
     id: '',             // to be filled
     name: sceneName,
@@ -235,7 +233,7 @@ function createS3DScene(name, force) {
   // Add the Three.js Scene instance for later use
   newSceneMeta.threeScene = threeScene;
 
-  // Register the new scene globally
+  // Set the new scene globally
   scenes.push(newSceneMeta);
 }
 
@@ -249,7 +247,7 @@ function createS3DScene(name, force) {
   }
 
 function switchScene(sceneName) {
-  // If explicitly disabling 3D
+  // If  disabling 3D
   if (sceneName === null) {
     curScene = null;
     curCamera = null;
@@ -259,7 +257,7 @@ function switchScene(sceneName) {
   const target = String(sceneName).trim();
   const sceneObj = scenes.find(s => s.name === target);
   if (!sceneObj) {
-    // scene not found → disable 3D
+    // scene not found = disable 3D
     curScene = null;
     curCamera = null;
     return;
@@ -280,7 +278,7 @@ function switchScene(sceneName) {
 }
 
 /**
- * Returns the active Three.js camera instance, or null.
+ * Returns the active Three.js camera, or null.
  */
 function getActiveThreeCamera() {
   if (!curScene || !curCamera) return null;
@@ -1793,14 +1791,24 @@ class ThreeSensing {
 
 class ThreeCamera {
   constructor() {
+    if (curScene === null) {
+      this.cameras = {};
+      this.sceneName = null;
+      this.current3D = null;
+      return;
+    }
     const sceneObj = scenes.find(s => s.name === curScene);
-    if (!sceneObj) throw new Error(`Active scene "${curScene}" not found`);
+    if (!sceneObj) {
+      this.cameras = {};
+      this.sceneName = null;
+      this.current3D = null;
+      return;
+    }
     this.cameras = sceneObj.cameras;
     this.sceneName = curScene;
     this.current3D = null;
   }
 
-  // Example method: list camera names
   listCameraNames() {
     return Object.keys(this.cameras);
   }
@@ -2190,7 +2198,11 @@ class ThreePen {
 function renderLoop() {
   const camera = getActiveThreeCamera();
   if (camera) {
-    renderer3D.render(scene, camera);
+    renderer3D.render(
+      // use the Three.js Scene instance stored on your scene object:
+      scenes.find(s => s.name === curScene).threeScene,
+      camera
+    );
   }
   requestAnimationFrame(renderLoop);
 }
