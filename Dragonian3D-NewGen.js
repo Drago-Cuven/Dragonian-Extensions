@@ -124,7 +124,6 @@
         tiedto: ""
       };
 
-    let currentCamera = null; // Variable to store the current camera
     let scenes = [{ 
       name: "default",
       cameras: [],
@@ -132,7 +131,7 @@
       lights: []
     }];
     let curScene = null;
-    let cureCamera = null;
+    let curCamera = null;
     let isInitialized = false;
     let currentSprite = null;
     const spriteObjects = {};
@@ -207,11 +206,55 @@ function createS3DCamera(name, sceneName, type) {
 
 
 
-  function createS3DScene(name, scene, type){
+function createS3DScene(name, force) {
+  const sceneName = String(name).trim();
+  if (!sceneName) return;
+
+  // Check if a scene with that name already exists
+  const existingIndex = scenes.findIndex(s => s.name === sceneName);
+  if (existingIndex !== -1) {
+    if (!force) return;           // cancel if not forcing
+    scenes.splice(existingIndex, 1); // remove the old scene
+  }
+
+  // Build the new scene metadata object
+  const newSceneMeta = {
+    id: '',             // to be filled
+    name: sceneName,
+    cameras: [],        // empty array of camera metadata
+    curCamera: '',      // no active camera yet
+    lights: []          // empty array of light metadata
+  };
+
+  // Create the actual Three.js Scene
+  const threeScene = new THREE.Scene();
+  
+  // Use Three.js's generated id
+  newSceneMeta.id = String(threeScene.id);
+
+  // Add the Three.js Scene instance for later use
+  newSceneMeta.threeScene = threeScene;
+
+  // Register the new scene globally
+  scenes.push(newSceneMeta);
+}
 
   
-  };
-  
+  function switchCamera(cameraName, sceneName) {
+   const targetScene = sceneName && sceneName.trim() ? sceneName.trim() : curScene;
+    const sceneObj = scenes.find(s => s.name === targetScene);
+    if (!sceneObj || !sceneObj.cameras[cameraName]) return;
+    curScene  = targetScene;
+    curCamera = cameraName;
+  }
+
+function getActiveThreeCamera() {
+  const sceneObj = scenes.find(s => s.name === curScene);
+  if (!sceneObj) return null;
+  const camEntry = sceneObj.cameras[curCamera];
+  return camEntry ? camEntry.camera3D : null;
+}
+
     const PATCHES_ID = "__patches" + "Dragonian3D";
     const patch = (obj, functions) => {
       if (obj[PATCHES_ID]) return;
@@ -1715,17 +1758,11 @@ class ThreeSensing {
 
 class ThreeCamera {
   constructor() {
-    // 1. Find the active scene object by name
     const sceneObj = scenes.find(s => s.name === curScene);
-    if (!sceneObj) {
-      throw new Error(`Active scene "${curScene}" not found`);
-    }
-
-    // 2. Now grab its cameras map
+    if (!sceneObj) throw new Error(`Active scene "${curScene}" not found`);
     this.cameras = sceneObj.cameras;
-
-    // 3. (Optional) store scene reference
-    this.scene = sceneObj;
+    this.sceneName = curScene;
+    this.current3D = null;
   }
 
   // Example method: list camera names
@@ -1733,17 +1770,6 @@ class ThreeCamera {
     return Object.keys(this.cameras);
   }
 
-  // Switch the active camera by name
-  switchCamera(name) {
-    if (!this.cameras[name]) {
-      console.warn(`No camera named "${name}" in scene "${this.scene.name}"`);
-      return;
-    }
-    // Set the global curCamera
-    curCamera = name;
-    // Optionally store the actual Three.js camera instance
-    this.current3D = this.cameras[name].camera3D;
-  }
 
   getInfo() {
       return {
@@ -2124,6 +2150,14 @@ class ThreePen {
   helloWorld() {
       return 'bork bork!';
   }
+}
+
+function renderLoop() {
+  const camera = getActiveThreeCamera();
+  if (camera) {
+    renderer3D.render(scene, camera);
+  }
+  requestAnimationFrame(renderLoop);
 }
 
 Scratch.extensions.register(new ThreeBase());
