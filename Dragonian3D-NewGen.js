@@ -36,6 +36,8 @@
       Engine = "NitroBolt";
   }
 
+  console.log(`Current engine is "${Engine}`);
+
   const extcolors = {
     Three: ["#0000ff", "#0000ff", "#0000ff"], 
     Motion: ["#4C97FF", "#0000ff", "#0000ff"],       // Blue
@@ -125,33 +127,84 @@
     let currentCamera = null; // Variable to store the current camera
     let scenes = [{ 
       name: "default",
-      cameras: defaultcameraSettings,
-      lights: {}
+      cameras: [],
+      curcam: "",
+      lights: []
     }];
-    let activeScene = null;
-    let activeCamera = null;
+    let curScene = null;
+    let cureCamera = null;
     let isInitialized = false;
     let currentSprite = null;
     const spriteObjects = {};
     const modelObjects = {};
 
-function createS3DCamera(name, scene, type) {
-
-  const getscene = scenes.find(s => s.name === scene);
-
-  if (!getscene) {
-    console.error(`Scene "${scene}" does not exist.`);
+function createS3DCamera(name, sceneName, type) {
+  // 1. Find the scene object by name
+  const scene = scenes.find(s => s.name === sceneName);
+  if (!scene) {
+    console.error(`Scene "${sceneName}" does not exist.`);
     return;
   }
 
-  if (getscene.cameras[name]) {
-    console.error(`Camera "${name}" already exists in scene "${scene}".`);
+  // 2. Cancel if a camera with that name already exists in this scene
+  if (scene.cameras[name]) {
+    console.error(`Camera "${name}" already exists in scene "${sceneName}".`);
     return;
   }
 
+  // 3. Build a fresh settings object from defaultcameraSettings
+  const settings = {
+    ...defaultcameraSettings,
+    name: String(name).trim(),
+    type: String(type).trim().toLowerCase()
+  };
 
-  console.log(`Camera "${name}" can be created in scene "${scene}".`);
+  // 4. Create the actual Three.js camera instance
+  let camera3D;
+  if (settings.type === 'orthographic') {
+    // Calculate half-width/height for orthographic frustum
+    const halfH = settings.zoom / 2;
+    const halfW = halfH * settings.aspect;
+    camera3D = new THREE.OrthographicCamera(
+      -halfW, halfW, halfH, -halfH,
+      settings.minclip, settings.maxclip
+    );
+  } else {
+    // Default to a PerspectiveCamera
+    camera3D = new THREE.PerspectiveCamera(
+      settings.fov,
+      settings.aspect,
+      settings.minclip,
+      settings.maxclip
+    );
+  }
+
+  // 5. Apply position, orientation, zoom, look-at, etc.
+  camera3D.position.set(settings.x, settings.y, settings.z);
+  camera3D.up.set(settings.upX, settings.upY, settings.upZ);
+  camera3D.lookAt(settings.lookAtX, settings.lookAtY, settings.lookAtZ);
+  camera3D.rotation.set(
+    settings.pitch * Math.PI / 180,
+    settings.yaw   * Math.PI / 180,
+    settings.roll  * Math.PI / 180
+  );
+  camera3D.zoom = settings.zoom;
+  camera3D.updateProjectionMatrix();
+
+  // 6. Grab the auto-assigned Three.js ID and store it in settings
+  settings.id = camera3D.id;
+
+  // 7. Finally, add this camera into the scene’s cameras object
+  scene.cameras[settings.name] = {
+    settings,
+    camera3D
+  };
+
+  console.log(
+    `Created camera "${settings.name}" (ID=${settings.id}) in scene "${sceneName}".`
+  );
 }
+
 
 
   function createS3DScene(name, scene, type){
