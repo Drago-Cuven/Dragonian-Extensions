@@ -1791,26 +1791,7 @@ class ThreeSensing {
 
 class ThreeCamera {
   constructor() {
-    if (curScene === null) {
-      this.cameras = {};
-      this.sceneName = null;
-      this.current3D = null;
-      return;
-    }
-    const sceneObj = scenes.find(s => s.name === curScene);
-    if (!sceneObj) {
-      this.cameras = {};
-      this.sceneName = null;
-      this.current3D = null;
-      return;
-    }
-    this.cameras = sceneObj.cameras;
-    this.sceneName = curScene;
-    this.current3D = null;
-  }
 
-  listCameraNames() {
-    return Object.keys(this.cameras);
   }
 
 
@@ -2131,7 +2112,11 @@ class ThreeCamera {
     }
     return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: 0 }];
   }
-
+  getCameras() {
+    const cameraNames = [];
+    return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
+  }
+/* it doesn't work
   getCameras() {
     const cameraNames = [];
     if (cameras.length > 0){
@@ -2139,6 +2124,7 @@ class ThreeCamera {
     }
     return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
   }
+  */
 }
 
 class ThreeOperators {
