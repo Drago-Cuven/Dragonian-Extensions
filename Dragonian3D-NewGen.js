@@ -378,7 +378,7 @@ function getActiveThreeCamera() {
     
         getInfo() {
             return {
-                id: 'DragonianUSB3D',
+                id: 'Dragonian3D',
                 name: '3D',
                 color1: extcolors.Three[0],
                 color3: extcolors.Three[2],
@@ -2113,9 +2113,8 @@ class ThreeCamera {
     return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: 0 }];
   }
   getCameras(scene) {
-    return scenes
-      .filter(s => s.Name === scene)
-      .flatMap(s => s.Cameras.map(camera => camera.name));
+    //return scenes.filter(s => s.Name === scene).flatMap(s => s.Cameras.map(camera => camera.name));
+    return ["current"];
   }
 /* it doesn't work
   getCameras() {
