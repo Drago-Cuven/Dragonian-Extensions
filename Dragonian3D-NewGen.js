@@ -2112,9 +2112,10 @@ class ThreeCamera {
     }
     return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: 0 }];
   }
-  getCameras() {
-    const cameraNames = [];
-    return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
+  getCameras(scene) {
+    return scenes
+      .filter(s => s.Name === scene)
+      .flatMap(s => s.Cameras.map(camera => camera.name));
   }
 /* it doesn't work
   getCameras() {
