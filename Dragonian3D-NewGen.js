@@ -2407,7 +2407,7 @@ class ThreeCamera {
     return menu;
   }
   getScenes() {
-    const list = [...scenes.map(s => s.name)];
+    const list = [{text:"current", value: curScene}, ...scenes.map(s => ({text: s.name, value: s.name}))];
     if (!ScratchBlocks || !ScratchBlocks.selected) return list;
 
     const block = ScratchBlocks.selected;
