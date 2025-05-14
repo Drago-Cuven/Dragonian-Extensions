@@ -97,13 +97,13 @@
 
   //setup here
 let idc = Math.floor(Math.random() * 100000) + 1;
-
+let IDFailCount = 0
 function makeRandomID() {
   const length = 20;
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
   let id = '';
   idc = Math.floor(Math.random() * 100000) + 1;
-
+  
   for (let i = 0; i < length; i++) {
     const randomIndex = Math.floor(Math.random() * characters.length);
     const randomCharacter = characters.charAt(randomIndex);
