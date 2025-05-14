@@ -222,6 +222,12 @@
                 shouldRestartExistingThreads: true
               },
               {
+                opcode: 'linkedFunctionCallbackReturn',
+                blockType: BlockType.COMMAND,
+                text: 'return [DATA]',
+                isTerminal: true,
+              },
+              {
                 opcode: 'no_op_5',
                 blockType: Scratch.BlockType.REPORTER,
                 text: '[TYPE] arguments',
@@ -250,6 +256,20 @@
                 disableMonitor: true,
                 func: 'getpfuncArgsnum',
               },
+              '---',
+              {
+                opcode: 'errorcheck',
+                blockType: Scratch.BlockType.BOOLEAN,
+                text: 'just errored?',
+                allowDropAnywhere: true,
+                disableMonitor: true,
+              },
+              {
+                opcode: 'lastlueerror',
+                blockType: Scratch.BlockType.REPORTER,
+                text: 'last error message',
+                allowDropAnywhere: true,
+              },
           ],
           menus: {
             luaVMdo: { acceptReporters: true, items: ["stop", "start", "reset"] },
@@ -270,6 +290,8 @@
       no_op_4() {}
       no_op_5() {}
       no_op_6() {}
+      errorcheck() {}
+      lastluaerror() {}
   
       _extensions() {
         // @ts-ignore
@@ -299,6 +321,10 @@
     
     // @ts-ignore
   async linkedFunctionCallback(args) {
+
+  }
+
+    async linkedFunctionCallbackReturn(args) {
 
   }
 
