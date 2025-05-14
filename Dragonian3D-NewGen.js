@@ -208,34 +208,91 @@ function createS3DScene(name, force) {
   const sceneName = String(name).trim();
   if (!sceneName) return;
 
-  // Check if a scene with that name already exists cus of scratch safety and allat
+  // 1. Remove any existing scene if force=true
   const existingIndex = scenes.findIndex(s => s.name === sceneName);
   if (existingIndex !== -1) {
-    if (!force) return;           // cancel if not forcing
-    scenes.splice(existingIndex, 1); // remove the old scene
+    if (!force) return;
+    scenes.splice(existingIndex, 1);
   }
 
-  // Build the new scene metadata object cus thats how i organize stuff
+  // 2. Build metadata placeholder
   const newSceneMeta = {
-    id: '',             // to be filled
     name: sceneName,
-    cameras: [],        // empty array of camera metadata
-    curCamera: '',      // no active camera yet
-    lights: []          // empty array of light metadata
+    threeScene: null,
+    cameras: {},       // will hold named THREE.Camera instances
+    curCamera: null    // name of the active camera
   };
 
-  // Create the actual Three.js Scene
+  // 3. Create the actual Three.js Scene
   const threeScene = new THREE.Scene();
-  
-  // Use Three.js's generated id
-  newSceneMeta.id = String(threeScene.id);
-
-  // Add the Three.js Scene instance for later use
   newSceneMeta.threeScene = threeScene;
 
-  // Set the new scene globally
+  // 4. Create a default PerspectiveCamera
+  //    FOV 75°, aspect from your renderer size, near=0.1, far=10000
+  const size = renderer.getSize(new THREE.Vector2()); // {width, height}
+  const defaultCam = new THREE.PerspectiveCamera(
+    75,
+    size.width / size.height,
+    0.1,
+    10000
+  );
+  defaultCam.position.set(0, 0, Math.max(size.width, size.height) / 2);
+  // register it under the name "default"
+  newSceneMeta.cameras["default"] = defaultCam;
+  newSceneMeta.curCamera = "default";
+
+  // 5. Register the new scene
   scenes.push(newSceneMeta);
+
+  console.log(`Scene "${sceneName}" created with default camera.`);
 }
+
+
+function deleteS3DScene(name) {
+  const sceneName = String(name).trim();
+  if (!sceneName) return;
+
+  // Find the scene metadata
+  const idx = scenes.findIndex(s => s.name === sceneName);
+  if (idx < 0) {
+    console.warn(`Cannot delete "${sceneName}": not found.`);
+    return;
+  }
+  const meta = scenes[idx];
+  const threeScene = meta.threeScene;
+
+  // Traverse and dispose all geometries, materials, and textures
+  threeScene.traverse(obj => {
+    if (obj.geometry) {
+      obj.geometry.dispose();
+    }
+    if (obj.material) {
+      // Handle array of materials too
+      const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+      mats.forEach(mat => {
+        if (mat.map) mat.map.dispose();
+        mat.dispose();
+      });
+    }
+  });
+
+  // Remove from our scenes array
+  scenes.splice(idx, 1);
+
+  // If that was the active scene, clear pointers
+  if (curScene === sceneName) {
+    curScene = null;
+    curCamera = null;
+  }
+
+  // (Optional) clear renderer caches
+  if (renderer && renderer._renderer && renderer._renderer.renderLists) {
+    renderer._renderer.renderLists.dispose();
+  }
+
+  console.log(`Scene "${sceneName}" deleted.`);
+}
+
 
   
   function switchCamera(cameraName, sceneName) {
@@ -386,10 +443,14 @@ function getActiveThreeCamera() {
                     {
                         opcode: "createScene",
                         blockType: BlockType.COMMAND,
-                        text: "create 3D scene named [SCENE]",
+                        text: "create 3D scene named [SCENE]. force creation? [FORCE]",
                         arguments: {
                             SCENE: { 
                                 type: ArgumentType.STRING,  
+                                defaultValue: "my scene" 
+                            },
+                            FORCE: { 
+                                type: ArgumentType.BOOLEAN,  
                                 defaultValue: "my scene" 
                             },
                         },
@@ -564,6 +625,11 @@ function getActiveThreeCamera() {
     
           runtime.requestRedraw();
         }
+
+        createScene(args)       { createS3DScene(args.SCENE, args.FORCE); }
+        deleteScene(args)       { deleteS3DScene(args.SCENE); }
+        setScene(args)          { switchScene(args.SCENE); }
+
 
         updateScale() {
           const w = runtime.stageWidth || 480;
