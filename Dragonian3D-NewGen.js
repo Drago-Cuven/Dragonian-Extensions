@@ -1,7 +1,7 @@
 /**
  * DragonianUSB3D
  * Author: Drago Cuven <https://github.com/Drago-Cuven>
- * Version: 0.0.21
+ * Version: 0.0.23
  * License: MIT & LGPLv3 License
  * Do not remove this comment
  **/
@@ -95,31 +95,31 @@
   //setup here
 
     // Global camera settings with default values so i don't forget like a dummy
-    const defaultcameraSettings = {
-        name: 'Camera',
-        type: 'perspective',
-        fov: 75,
-        minclip: 0.1,
-        maxclip: 2000,
-        x: 0,
-        y: 0,
-        z: 5,
-        roll: 0,
-        pitch: 0,
-        yaw: 0,
-        aspect: window.innerWidth / window.innerHeight,
-        zoom: 1,
-        upX: 0,
-        upY: 1,
-        upZ: 0,
-        lookAtX: 0,
-        lookAtY: 0,
-        lookAtZ: 0,
-        viewportX: 0,
-        viewportY: 0,
-        viewportWidth: 1,
-        viewportHeight: 1,
-        tiedto: ""
+    const defaultCameraSettings = {
+      name: 'Camera',
+      type: 'perspective',
+      fov: 75,
+      minclip: 0.1,
+      maxclip: 2000,
+      x: 0,
+      y: 0,
+      z: 5,
+      roll: 0,
+      pitch: 0,
+      yaw: 0,
+      aspect: window.innerWidth / window.innerHeight,
+      zoom: 1,
+      upX: 0,
+      upY: 1,
+      upZ: 0,
+      lookAtX: 0,
+      lookAtY: 0,
+      lookAtZ: 0,
+      viewportX: 0,
+      viewportY: 0,
+      viewportWidth: 1,
+      viewportHeight: 1,
+      tiedto: ""
       };
 
     let scenes = [{ 
@@ -151,7 +151,7 @@ function createS3DCamera(name, sceneName, type) {
 
   // 3. Build a fresh settings object from defaultcameraSettings :3
   const settings = {
-    ...defaultcameraSettings,
+    ...defaultCameraSettings,
     name: String(name).trim(),
     type: String(type).trim().toLowerCase()
   };
@@ -384,19 +384,59 @@ function getActiveThreeCamera() {
                 color3: extcolors.Three[2],
                 blocks: [
                     {
-                        opcode: "initializeScene",
+                        opcode: "createScene",
                         blockType: BlockType.COMMAND,
-                        text: "initialize scene",
+                        text: "create 3D scene named [SCENE]",
+                        arguments: {
+                            SCENE: { 
+                                type: ArgumentType.STRING,  
+                                defaultValue: "my scene" 
+                            },
+                        },
+                    },
+                    {
+                        opcode: "deleteScene",
+                        blockType: BlockType.COMMAND,
+                        text: "delete 3D scene [SCENE]",
+                        arguments: {
+                            SCENE: { 
+                                type: ArgumentType.STRING, 
+                                menu: "sceneMenu", 
+                                defaultValue: "current" 
+                            },
+                        },
                     },
                     {
                         opcode: "toggleScene",
                         blockType: BlockType.COMMAND,
-                        text: "set 3d scene to [SCENE]",
+                        text: "set 3D scene to [SCENE]",
                         arguments: {
                             SCENE: { 
                                 type: ArgumentType.STRING, 
-                                menu: "Scenes", 
-                                defaultValue: "none" 
+                                menu: "setsceneMenu", 
+                                defaultValue: "current" 
+                            },
+                        },
+                    },
+                    {
+                        opcode: "myscenes",
+                        blockType: BlockType.ARRAY,
+                        text: "3D scenes",
+                    },
+                    {
+                        opcode: "myscenedata",
+                        blockType: BlockType.ARRAY,
+                        text: "get [DATA] of 3D scene [SCENE]",
+                        arguments: {
+                            SCENE: { 
+                                type: ArgumentType.STRING, 
+                                menu: "sceneMenu", 
+                                defaultValue: "current" 
+                            },
+                            DATA: { 
+                                type: ArgumentType.STRING, 
+                                menu: "sceneAssets", 
+                                defaultValue: "ID" 
                             },
                         },
                     },
@@ -408,7 +448,7 @@ function getActiveThreeCamera() {
                     {
                         opcode: "setSkyboxColor",
                         blockType: BlockType.COMMAND,
-                        text: "scene skybox color [COLOR]",
+                        text: "3D scene skybox color [COLOR]",
                         arguments: {
                             COLOR: { 
                                 type: ArgumentType.COLOR, 
@@ -419,7 +459,7 @@ function getActiveThreeCamera() {
                     {
                         opcode: "setSkyboxTexture",
                         blockType: BlockType.COMMAND,
-                        text: "scene skybox Texture [Costume]",
+                        text: "3D scene skybox Texture [Costume]",
                         arguments: {
                             Costume: { 
                                 type: ArgumentType.COSTUME, 
@@ -428,9 +468,9 @@ function getActiveThreeCamera() {
                     },
                 ],
                 menus: {
-                    Scenes: {
+                    sceneAssets: {
                         acceptReporters: true,
-                        items: ["none"],
+                        items: ["ID", "cameras", "lights"],
                     },
                     MODE_MENU: {
                         acceptReporters: true,
@@ -440,6 +480,14 @@ function getActiveThreeCamera() {
                     spriteMenu: {
                         acceptReporters: true,
                         items: "getSprites",
+                    },
+                    sceneMenu: {
+                        acceptReporters: true,
+                        items: "getScenes",
+                    },
+                    setsceneMenu: {
+                        acceptReporters: true,
+                        items: "getsetScenes",
                     },
                 },
             };
@@ -606,7 +654,24 @@ function getActiveThreeCamera() {
               }
               return og();
             },
-    
+            setPenMode(og, mode) {
+              if (mode === "3D") {
+                this[THREE_DIRTY] = true;
+                this._drawList = this._drawList.filter(id => !this._allDrawables[id][IN_3D]);
+              } else {
+                this[THREE_DIRTY] = true;
+                this._drawList = this._drawList.filter(id => this._allDrawables[id][IN_3D]);
+              }
+              return og(mode);
+            },
+            setPenSkin(og, skinID) {
+              if (this._allSkins[skinID] && this._allSkins[skinID][IN_3D]) {
+                this._drawList = this._drawList.filter(id => !this._allDrawables[id][IN_3D]);
+              } else {
+                this._drawList = this._drawList.filter(id => this._allDrawables[id][IN_3D]);
+              }
+              return og(skinID);
+            },
             isTouchingDrawables(og, drawableID, candidateIDs = this._drawList) {
               const dr = this._allDrawables[drawableID];
     
@@ -773,6 +838,14 @@ function getActiveThreeCamera() {
                 }
             }
             return spriteNames.length > 0 ? spriteNames : [{ text: "", value: 0 }];
+        }
+        
+        getScenes() {
+              return ['current', ...scenes.map(s => s.name)];
+        }
+
+        getsetScenes() {
+              return ['none', ...scenes.map(s => s.name)];
         }
     }
 
@@ -1791,7 +1864,105 @@ class ThreeSensing {
 
 class ThreeCamera {
   constructor() {
+    // 3D disabled?
+    if (curScene === null) {
+      this.sceneObj   = null;
+      this.cameras    = {};
+      this.curCamera  = null;
+      this.current3D  = null;
+      return;
+    }
 
+    // Look up the active scene
+    const scene = scenes.find(s => s.name === curScene);
+    if (!scene) {
+      // invalid curScene → treat as 3D off
+      this.sceneObj   = null;
+      this.cameras    = {};
+      this.curCamera  = null;
+      this.current3D  = null;
+      return;
+    }
+
+    // Bind to that scene
+    this.sceneObj   = scene;
+    this.cameras    = scene.cameras;
+    // scene.curCamera may be missing—default to the first camera or null
+    this.curCamera  =
+      (scene.curCamera && scene.cameras[scene.curCamera])
+        ? scene.curCamera
+        : Object.keys(scene.cameras)[0] || null;
+    // Always sync the global curCamera
+    curCamera = this.curCamera;
+    this.current3D  = this.curCamera
+        ? this.cameras[this.curCamera].camera3D
+        : null;
+  }
+
+  switchCamera(cameraName, sceneName) {
+    // Determine target scene name (nullable)
+    const targetScene = (sceneName != null && String(sceneName).trim())
+      ? String(sceneName).trim()
+      : curScene;
+
+    // Handle disabling 3D
+    if (targetScene === null) {
+      curScene  = null;
+      curCamera = null;
+      this.sceneObj   = null;
+      this.cameras    = {};
+      this.curCamera  = null;
+      this.current3D  = null;
+      return;
+    }
+
+    // Lookup that scene
+    const scene = scenes.find(s => s.name === targetScene);
+    if (!scene) return;              // invalid scene → no-op
+
+    // Does the named camera exist?
+    if (!scene.cameras[cameraName]) return;  // invalid camera → no-op
+
+    // Commit the switch
+    curScene  = targetScene;
+    curCamera = cameraName;
+    // Store on the scene metadata
+    scene.curCamera = cameraName;
+
+    // Re-bind
+    this.sceneObj   = scene;
+    this.cameras    = scene.cameras;
+    this.curCamera  = cameraName;
+    this.current3D  = scene.cameras[cameraName].camera3D;
+  }
+
+  switchCamera(cameraName, sceneName) {
+    // Determine which scene to switch in
+    const targetScene = (sceneName && sceneName.trim()) 
+      ? sceneName.trim() 
+      : curScene;
+
+    // If disabling 3D:
+    if (targetScene === null) {
+      curScene  = null;
+      curCamera = null;
+      this.sceneName = null;
+      this.cameras   = {};
+      this.current3D = null;
+      return;
+    }
+
+    // Find the scene
+    const sceneObj = scenes.find(s => s.name === targetScene);
+    if (!sceneObj) return;               // invalid scene → no-op
+    if (!sceneObj.cameras[cameraName]) return; // invalid camera → no-op
+
+    // Commit the switch
+    curScene  = targetScene;
+    curCamera = cameraName;
+    this.sceneName = targetScene;
+    this.cameras   = sceneObj.cameras;
+    this.current3D = this.cameras[cameraName].camera3D;
   }
 
 
@@ -1803,265 +1974,298 @@ class ThreeCamera {
           color2: extcolors.Camera[1],
           color3: extcolors.Camera[2],
           blocks: [
-              {
-                opcode: "createCamera",
-                blockType: BlockType.COMMAND,
-                text: "create camera [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "deleteCamera",
-                blockType: BlockType.COMMAND,
-                text: "delete camera [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                },
-              },
-              {
-                opcode: "existingCameras",
-                blockType: BlockType.ARRAY,
-                text: "existing cameras",
-              },
-              {
-                opcode: "focusCamera",
-                blockType: BlockType.COMMAND,
-                text: "focus on camera [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "moveCameraSteps",
-                blockType: BlockType.COMMAND,
-                text: "move camera [CAMERA] [STEPS] steps in 3D",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                  STEPS: { type: ArgumentType.NUMBER, defaultValue: 10 },
-                },
-              },
-              {
-                opcode: "setCameraPosition",
-                blockType: BlockType.COMMAND,
-                text: "set camera position of [CAMERA] to x:[X] y:[Y] z:[Z]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                  X: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Z: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "changeCameraPosition",
-                blockType: BlockType.COMMAND,
-                text: "change camera position of [CAMERA] by x:[X] y:[Y] z:[Z]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                  X: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Z: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "setCameraRotation",
-                blockType: BlockType.COMMAND,
-                text: "set camera rotation of [CAMERA] to r:[R] p:[P] y:[Y]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                  R: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  P: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "changeCameraRotation",
-                blockType: BlockType.COMMAND,
-                text: "change camera rotation of [CAMERA] by r:[R] p:[P] y:[Y]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras"},
-                  R: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  P: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                  Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "setCameraPosMenu",
-                blockType: BlockType.COMMAND,
-                text: "set camera pos [POSTYPES] of [CAMERA] to [NUMBER]",
-                arguments: {
-                  POSTYPES: { type: ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                  NUMBER: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "setCameraRotMenu",
-                blockType: BlockType.COMMAND,
-                text: "set camera rot [ROTTYPES] of [CAMERA] to [NUMBER]",
-                arguments: {
-                  ROTTYPES: { type: ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                  NUMBER: { type: ArgumentType.NUMBER, defaultValue: 0 },
-                },
-              },
-              {
-                opcode: "cameraDirectionAround",
-                blockType: BlockType.REPORTER,
-                text: "camera direction around [ROTTYPES] of [CAMERA]",
-                arguments: {
-                  ROTTYPES: { type: ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraXPosition",
-                blockType: BlockType.REPORTER,
-                text: "camera x position of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraYPosition",
-                blockType: BlockType.REPORTER,
-                text: "camera y position of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraZPosition",
-                blockType: BlockType.REPORTER,
-                text: "camera z position of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraRoll",
-                blockType: BlockType.REPORTER,
-                text: "camera roll of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraPitch",
-                blockType: BlockType.REPORTER,
-                text: "camera pitch of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraYaw",
-                blockType: BlockType.REPORTER,
-                text: "camera yaw of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraPositionArray",
-                blockType: BlockType.ARRAY,
-                text: "camera position of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraPositionObject",
-                blockType: BlockType.OBJECT,
-                text: "camera position of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraRotationArray",
-                blockType: BlockType.ARRAY,
-                text: "camera rotation of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "cameraRotationObject",
-                blockType: BlockType.OBJECT,
-                text: "camera rotation of [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "bindCamera",
-                blockType: BlockType.COMMAND,
-                text: "attach camera [CAMERA] to [SPRITE]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                  SPRITE: { type: ArgumentType.STRING, menu: "spriteMenu" },
-                },
-              },
-              {
-                opcode: "unbindCamera",
-                blockType: BlockType.COMMAND,
-                text: "detach camera [CAMERA]",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "bindedSprite",
-                blockType: BlockType.REPORTER,
-                text: "sprite camera [CAMERA] is attached to",
-                arguments: {
-                  CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
-                },
-              },
-              {
-                opcode: "setCameraVis",
-                blockType: BlockType.COMMAND,
-                text: "set camera [CAMVIS] to [NUMBER]",
-                arguments: {
-                  CAMVIS: { type: ArgumentType.STRING, menu: "camvis" },
-                  NUMBER: { type: ArgumentType.NUMBER, defaultValue: 90 },
-                },
-              },
-              {
-                opcode: "getCameraVis",
-                blockType: BlockType.REPORTER,
-                text: "camera [CAMVIS]",
-                arguments: {
-                  CAMVIS: { type: ArgumentType.STRING, menu: "camvis", defaultValue: "FOV" },
-                },
-            },
+          {
+        opcode: "createCamera",
+        blockType: BlockType.COMMAND,
+        text: "create camera [CAMERA] in scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "deleteCamera",
+        blockType: BlockType.COMMAND,
+        text: "delete camera [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "existingCameras",
+        blockType: BlockType.ARRAY,
+        text: "existing cameras of scene [SCENE]",
+        arguments: {
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "focusCamera",
+        blockType: BlockType.COMMAND,
+        text: "focus on camera [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "moveCameraSteps",
+        blockType: BlockType.COMMAND,
+        text: "move camera [CAMERA] of scene [SCENE] [STEPS] steps in 3D",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          STEPS: { type: ArgumentType.NUMBER, defaultValue: 10 },
+        },
+          },
+          {
+        opcode: "setCameraPosition",
+        blockType: BlockType.COMMAND,
+        text: "set camera position of [CAMERA] of scene [SCENE] to x:[X] y:[Y] z:[Z]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          X: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Z: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "changeCameraPosition",
+        blockType: BlockType.COMMAND,
+        text: "change camera position of [CAMERA] of scene [SCENE] by x:[X] y:[Y] z:[Z]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          X: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Z: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "setCameraRotation",
+        blockType: BlockType.COMMAND,
+        text: "set camera rotation of [CAMERA] of scene [SCENE] to r:[R] p:[P] y:[Y]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          R: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          P: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "changeCameraRotation",
+        blockType: BlockType.COMMAND,
+        text: "change camera rotation of [CAMERA] of scene [SCENE] by r:[R] p:[P] y:[Y]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          R: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          P: { type: ArgumentType.NUMBER, defaultValue: 0 },
+          Y: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "setCameraPosMenu",
+        blockType: BlockType.COMMAND,
+        text: "set camera pos [POSTYPES] of [CAMERA] of scene [SCENE] to [NUMBER]",
+        arguments: {
+          POSTYPES: { type: ArgumentType.STRING, menu: "postypes", defaultValue: "x" },
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          NUMBER: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "setCameraRotMenu",
+        blockType: BlockType.COMMAND,
+        text: "set camera rot [ROTTYPES] of [CAMERA] of scene [SCENE] to [NUMBER]",
+        arguments: {
+          ROTTYPES: { type: ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          NUMBER: { type: ArgumentType.NUMBER, defaultValue: 0 },
+        },
+          },
+          {
+        opcode: "cameraDirectionAround",
+        blockType: BlockType.REPORTER,
+        text: "camera direction around [ROTTYPES] of [CAMERA] of scene [SCENE]",
+        arguments: {
+          ROTTYPES: { type: ArgumentType.STRING, menu: "rottypes", defaultValue: "r (roll)" },
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraXPosition",
+        blockType: BlockType.REPORTER,
+        text: "camera x position of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraYPosition",
+        blockType: BlockType.REPORTER,
+        text: "camera y position of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraZPosition",
+        blockType: BlockType.REPORTER,
+        text: "camera z position of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraRoll",
+        blockType: BlockType.REPORTER,
+        text: "camera roll of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraPitch",
+        blockType: BlockType.REPORTER,
+        text: "camera pitch of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraYaw",
+        blockType: BlockType.REPORTER,
+        text: "camera yaw of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraPositionArray",
+        blockType: BlockType.ARRAY,
+        text: "camera position of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraPositionObject",
+        blockType: BlockType.OBJECT,
+        text: "camera position of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraRotationArray",
+        blockType: BlockType.ARRAY,
+        text: "camera rotation of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "cameraRotationObject",
+        blockType: BlockType.OBJECT,
+        text: "camera rotation of [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "bindCamera",
+        blockType: BlockType.COMMAND,
+        text: "attach camera [CAMERA] of scene [SCENE] to [SPRITE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          SPRITE: { type: ArgumentType.STRING, menu: "spriteMenu" },
+        },
+          },
+          {
+        opcode: "unbindCamera",
+        blockType: BlockType.COMMAND,
+        text: "detach camera [CAMERA] of scene [SCENE]",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "bindedSprite",
+        blockType: BlockType.REPORTER,
+        text: "sprite camera [CAMERA] of scene [SCENE] is attached to",
+        arguments: {
+          CAMERA: { type: ArgumentType.STRING, menu: "cameras", defaultValue: "current" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+          },
+          {
+        opcode: "setCameraVis",
+        blockType: BlockType.COMMAND,
+        text: "set camera [CAMVIS] of scene [SCENE] to [NUMBER]",
+        arguments: {
+          CAMVIS: { type: ArgumentType.STRING, menu: "camvis" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+          NUMBER: { type: ArgumentType.NUMBER, defaultValue: 90 },
+        },
+          },
+          {
+        opcode: "getCameraVis",
+        blockType: BlockType.REPORTER,
+        text: "camera [CAMVIS] of scene [SCENE]",
+        arguments: {
+          CAMVIS: { type: ArgumentType.STRING, menu: "camvis", defaultValue: "FOV" },
+          SCENE: { type: ArgumentType.STRING, menu: "scenes", defaultValue: "current" },
+        },
+        },
           ],
           menus: {
-              cameras: {
-                acceptReporters: true,
-                items: "getCameras",
-            },
-              spriteMenu: {
-              acceptReporters: true,
-              items: "getSprites",
-            },
-              postypes: {
-                acceptReporters: true,
-                items: ["x", "y", "z"],
-              },
-              rottypes: {
-                acceptReporters: true,
-                items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
-              },
-              camvis: {
-                acceptReporters: true,
-                items: [{ text: "field of view", value: "fov" }, { text: "near", value: "minclip" }, { text: "far", value: "maxclip" }],
-              },
-              turndirs: {
-                acceptReporters: true,
-                items: ["up", "down", "left", "right"],
-              },
+          cameras: {
+        acceptReporters: true,
+        items: "getCameras",
+        },
+          scenes: {
+        acceptReporters: true,
+        items: "getScenes",
+        },
+          spriteMenu: {
+          acceptReporters: true,
+          items: "getSprites",
+        },
+          postypes: {
+        acceptReporters: true,
+        items: ["x", "y", "z"],
+          },
+          rottypes: {
+        acceptReporters: true,
+        items: [{ text: "r (roll)", value: "roll" }, { text: "p (pitch)", value: "pitch" }, { text: "y (yaw)", value: "yaw" }],
+          },
+          camvis: {
+        acceptReporters: true,
+        items: [{ text: "field of view", value: "fov" }, { text: "near", value: "minclip" }, { text: "far", value: "maxclip" }],
+          },
+          turndirs: {
+        acceptReporters: true,
+        items: ["up", "down", "left", "right"],
+          },
         },
       };
   }
@@ -2112,10 +2316,15 @@ class ThreeCamera {
     }
     return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: 0 }];
   }
-  getCameras(scene) {
-    //return scenes.filter(s => s.Name === scene).flatMap(s => s.Cameras.map(camera => camera.name));
-    return ["current"];
+  getCameras() {
+    const cameraNames = [];
+    return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
   }
+  getScenes() {
+    return ['current', ...scenes.map(s => s.name)];
+  }
+
+
 /* it doesn't work
   getCameras() {
     const cameraNames = [];
