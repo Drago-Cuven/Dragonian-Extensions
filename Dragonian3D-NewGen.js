@@ -38,7 +38,7 @@
   console.log(`Current engine is "${Engine}`);
 
   const extcolors = {
-    Three: ["#0000ff", "#0000ff", "#0000ff"], 
+    Three: ["#0000ff", "#00000", "#0000ff"], 
     Motion: ["#4C97FF", "#0000ff", "#0000ff"],       // Blue
     Looks: ["#9966FF", "#0000ff", "#0000ff"],       // Purple
     Sound: ["#CF63CF", "#0000ff", "#0000ff"],       // Pink
