@@ -37,6 +37,9 @@
 
   console.log(`Current engine is "${Engine}`);
 
+  const checkerKey = "SCENE"; // constant argument name of the constant menu
+  const dependerKey = "CAMERA"; // constant argument name of the dependent menu
+
   const extcolors = {
     Three: ["#0000ff", "#00000", "#0000ff"], 
     Motion: ["#4C97FF", "#0000ff", "#0000ff"],       // Blue
@@ -124,7 +127,8 @@
 
     let scenes = [{ 
       name: "default",
-      cameras: [],
+      ID: "defScene1",
+      cameras: [{name:'Camera_1',id:'G7t8R4f1Jp',type:'perspective',fov:75,minclip:0.1,maxclip:2000,x:0,y:0,z:5,roll:0,pitch:0,yaw:0,aspect:window.innerWidth/window.innerHeight,zoom:1,upX:0,upY:1,upZ:0,lookAtX:0,lookAtY:0,lookAtZ:0,viewportX:0,viewportY:0,viewportWidth:1,viewportHeight:1,tiedto:""},{name:'Camera_2',id:'Q3k9T1v2Xp',type:'orthographic',fov:75,minclip:0.1,maxclip:2000,x:0,y:0,z:5,roll:0,pitch:0,yaw:0,aspect:window.innerWidth/window.innerHeight,zoom:1,upX:0,upY:1,upZ:0,lookAtX:0,lookAtY:0,lookAtZ:0,viewportX:0,viewportY:0,viewportWidth:1,viewportHeight:1,tiedto:""}],
       curcam: "",
       lights: []
     }];
@@ -2380,26 +2384,42 @@ class ThreeCamera {
             });
         }
     }
-    return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: 0 }];
+    return spriteNames.length > 0 ? spriteNames : [{ text: "none", value: "0" }];
   }
+
   getCameras() {
-    const cameraNames = [];
-    return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
+    const defaultMenu = ["cam test"];
+    let menu = [""];
+    if (!ScratchBlocks || !ScratchBlocks.selected) return defaultMenu;
+
+    const block = ScratchBlocks.selected;
+    for (let i = 0; i < block.inputList.length; i++) {
+      const input = block.inputList[i];
+      if (input.name === checkerKey) {
+        const otherInput = input.connection.targetBlock();
+        if (!otherInput) return defaultMenu;
+
+        const sceneName = otherInput.inputList[0].fieldRow[0].value_;
+        const scene = scenes.find((e) => e.name === sceneName);
+        if (scene) return scene.cameras;
+      }
+    }
+    return menu;
   }
   getScenes() {
-    return ['current', ...scenes.map(s => s.name)];
-  }
+    const list = [...scenes.map(s => s.name)];
+    if (!ScratchBlocks || !ScratchBlocks.selected) return list;
 
-
-/* it doesn't work
-  getCameras() {
-    const cameraNames = [];
-    if (cameras.length > 0){
-      cameraNames.push({ text: "current", value: cameras[1] });
-    }
-    return cameraNames.length > 0 ? cameraNames : [{ text: "none", value: 0 }];
+    const block = ScratchBlocks.selected;
+    block.inputList.forEach((input) => {
+      if (input.name === dependerKey) {
+        const otherInput = input.connection.targetBlock();
+        if (!otherInput) return;
+        otherInput.inputList[0].fieldRow[0].setValue(this.getCameras()[0]);
+      }
+    });
+    return list;
   }
-  */
 }
 
 class ThreeOperators {
