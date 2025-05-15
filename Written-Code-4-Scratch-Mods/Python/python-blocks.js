@@ -44,16 +44,13 @@
     });
   }
 
-  await injectScript(`${CDN_BASE}/Promise.min.js`);        // :contentReference[oaicite:6]{index=6}
-  await injectScript(`${CDN_BASE}/FunctionPromise.js`);   // :contentReference[oaicite:7]{index=7}
-  await injectScript(`${CDN_BASE}/pypyjs.js`);            // :contentReference[oaicite:8]{index=8}
-
-  // @ts-ignore
-  await pypyjs.ready();  //:contentReference[oaicite:9]{index=9}
+  await injectScript(`${CDN_BASE}/Promise.min.js`);        
+  await injectScript(`${CDN_BASE}/FunctionPromise.js`);   
+  await injectScript(`${CDN_BASE}/pypyjs.js`);            
 
   // @ts-ignore
   const python = new pypyjs();
-  await python.ready();   //:contentReference[oaicite:10]{index=10}
+  await python.ready();   
 
   // @ts-ignore
   const pfuncargs = Symbol("pfuncargs");
