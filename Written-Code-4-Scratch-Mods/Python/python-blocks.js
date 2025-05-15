@@ -32,6 +32,7 @@
   };  // 
 
   function injectScript(src) {
+    // @ts-ignore
     return new Promise((resolve, reject) => {
       // @ts-ignore
       if (document.querySelector(`script[src="${src}"]`)) return resolve();
@@ -52,14 +53,15 @@
 
   // @ts-ignore
   const python = new pypyjs();
-  await python.ready;   //:contentReference[oaicite:10]{index=10}
+  await python.ready();   //:contentReference[oaicite:10]{index=10}
 
+  // @ts-ignore
   const pfuncargs = Symbol("pfuncargs");
 
   python.exec(`print("✅ PyPy.js is loaded and ready!")`);
 
 
-  let pyOn = false;
+  let pyOn = true;
   class extension {
     static get MoreFields() {
         if (!runtime.ext_0znzwMoreFields) return false;

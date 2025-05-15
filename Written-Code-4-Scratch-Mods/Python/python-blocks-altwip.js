@@ -19,6 +19,7 @@
       const {Cast, BlockType, ArgumentType, vm} = Scratch,
         {runtime} = vm;
 
+          // @ts-ignore
           await new Promise(resolve => {
     const core = document.createElement('script');
     core.src = 'https://cdn.jsdelivr.net/npm/brython@3.13.0/brython.min.js';
