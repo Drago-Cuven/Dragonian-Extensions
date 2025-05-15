@@ -56,6 +56,7 @@
 
     class extension {
         getInfo() {
+          const MoreFields = extension.MoreFields;
           return {
             id: 'DragoRuby',
             name: "Ruby",
@@ -64,38 +65,137 @@
             menuIconURI,
             blocks: [
                 {
-                    opcode: 'mainscript',
-                    blockType: Scratch.BlockType.COMMAND,
-                    text: 'main [CODE] .rb', //runs constantly, like in DragonRuby
-                    arguments: {
-                        CODE: {
-                          type: ArgumentType.STRING
-                        },
-                      },
+                  opcode: 'VMState',
+                  blockType: BlockType.BOOLEAN,
+                  text: 'is ruby on?',
                 },
                 {
-                    func: 'runRuby',
-                    opcode: 'executeBlock',
-                    blockType: Scratch.BlockType.COMMAND,
-                    text: 'ruby [CODE]',
-                    arguments: {
-                        CODE: {
-                          type: ArgumentType.STRING
-                        },
-                      },
+                  opcode: 'disableEnableInit',
+                  blockType: BlockType.COMMAND,
+                  text: 'enable scratch commands for ruby? [INIT]',
+                  arguments: {
+                    INIT: {
+                      type: ArgumentType.BOOLEAN,
+                    },
+                  },
                 },
                 {
-                    func: 'runRuby',
-                    opcode: 'executereporter',
-                    blockType: Scratch.BlockType.REPORTER,
-                    text: 'ruby [CODE]',
-                    arguments: {
-                        CODE: {
-                          type: ArgumentType.STRING
-                        },
-                      },
-                },  
-            ]
+                  opcode: 'rubyVMdo',
+                  blockType: BlockType.COMMAND,
+                  text: '[ACTION] ruby vm',
+                  arguments: {
+                    ACTION: {
+                      type: ArgumentType.STRING,
+                      menu: `rubyVMdo`,
+                      defaultValue: `stop`,
+                    },
+                  },
+                  func: 'rubyVMdo',
+                },
+                {
+                  opcode: 'no_op_0',
+                  blockType: BlockType.COMMAND,
+                  text: 'run ruby [CODE]',
+                  arguments: {
+                    CODE: {
+                      type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING,
+                      defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`,
+                    },
+                  },
+                  func: 'runRuby',
+                },
+            {
+              opcode: 'no_op_1',
+              blockType: BlockType.REPORTER,
+              text: 'run ruby [CODE]',
+              arguments: {
+                CODE: {
+                  type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING,
+                  defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`,
+                },
+              },
+              func: 'runRuby',
+              outputShape: 3,
+            },
+            '---',
+              {
+                opcode: 'no_op_4',
+                blockType: Scratch.BlockType.REPORTER,
+                text: 'variable [VAR]',
+                outputShape: Scratch.extensions.isPenguinmod ? 5 : 3,
+                blockShape: Scratch.extensions.isPenguinmod ? 5 : 3,
+                arguments: {
+                  VAR: {
+                    type: ArgumentType.STRING,
+                  },
+                },
+                allowDropAnywhere: true,
+                func: 'getRubyVar',
+              },
+              '---',
+              //here
+              {
+                opcode: 'linkedFunctionCallback',
+                blockType: BlockType.EVENT,
+                text: 'on pfunc()',
+                isEdgeActivated: false,
+                shouldRestartExistingThreads: true
+              },
+              {
+                opcode: 'linkedFunctionCallbackReturn',
+                blockType: BlockType.COMMAND,
+                text: 'return [DATA]',
+                isTerminal: true,
+              },
+              {
+                opcode: 'no_op_5',
+                blockType: Scratch.BlockType.REPORTER,
+                text: '[TYPE] arguments',
+                arguments: {
+                  TYPE: {
+                    type: ArgumentType.STRING,
+                    defaultValue: "pure",
+                    menu: "argreptypes",
+                  },
+                },
+                allowDropAnywhere: true,
+                disableMonitor: true,
+                func: 'getpfuncArgs',
+              },
+              {
+                opcode: 'no_op_6',
+                blockType: Scratch.BlockType.REPORTER,
+                text: 'argument [NUM]',
+                arguments: {
+                  NUM: {
+                    type: ArgumentType.NUMBER,
+                    defaultValue: 1,
+                  },
+                },
+                allowDropAnywhere: true,
+                disableMonitor: true,
+                func: 'getpfuncArgsnum',
+              },
+              '---',
+              {
+                opcode: 'onError',
+                blockType: BlockType.EVENT,
+                text: 'on error',
+                isEdgeActivated: false,
+                shouldRestartExistingThreads: true
+              },
+              {
+                opcode: 'lastError',
+                blockType: Scratch.BlockType.REPORTER,
+                text: 'last error message',
+                allowDropAnywhere: true,
+              },
+          ],
+          menus: {
+            rubyVMdo: { acceptReporters: true, items: ["stop", "start", "reset"] },
+            argreptypes: { acceptReporters: true, items: ["pure", "stringified"] }
+            },
+          customFieldTypes: extension.customFieldTypes,
         }
     }
 
@@ -108,10 +208,63 @@
         return await ruby.eval(Cast.toString(CODE));
       }
     }
+
+    VMState() {
+        return rubyOn;
+    }
     
     async reboot(args){
         let ruby = (await DefaultRubyVM(module)).vm;
     }
+
+    disableEnableInit(args, util) {}
+
+    async rubyVMdo(args, util) {}
+
+    getRubyVar(args, util) {}
+
+    async linkedFunctionCallback(args, util) {}
+
+    async linkedFunctionCallbackReturn(args, util) {}
+
+    getpfuncArgs(args, util) {}
+
+    getpfuncArgsnum(args, util) {}
+
+    onError(args, util) {}
+
+    lastError(args, util) {}
+
+    getpfuncArgs(args, util) {
+        if (!Object.prototype.hasOwnProperty.call(util.thread, pfuncargs)) {
+          return "";
+        } else {
+          let setargs = util.thread[pfuncargs];
+
+          const CAI = arr => arr.map(item => 
+            typeof item === 'number' ? item.toString() : item
+          );
+
+          if (args.TYPE = "stringified") {
+            return CAI(setargs);
+          } else {
+            return setargs;
+          }
+        }
+     }
+
+    getpfuncArgsnum(args, util) {
+      if (!Object.prototype.hasOwnProperty.call(util.thread, pfuncargs)) {
+        return "";
+      } else {
+        let setargs = util.thread[pfuncargs];
+        if (args.NUM < 1 || args.NUM > setargs.length) {
+          return "";
+        } else {
+          return setargs[args.NUM - 1];
+        }
+      }
+   }
 }
 
     Scratch.extensions.register(new extension())
