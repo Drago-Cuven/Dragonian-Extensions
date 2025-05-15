@@ -25,7 +25,7 @@
     ruby.eval(`
         puts "ruby VM ready."
     `);
-    rubyon = true;
+    rubyOn = true;
     
     /*async function resetRuby() {
         const threads = runtime.threads;
@@ -101,7 +101,7 @@
 
     //block functions here
     async runRuby({CODE}, util) {
-      if (rubyon == false) {
+      if (!rubyOn) {
         return "";
       } else {
         //if (this.DO_INIT) this.initRubyCommands(util);
