@@ -258,14 +258,14 @@
               },
               '---',
               {
-                opcode: 'errorcheck',
-                blockType: Scratch.BlockType.BOOLEAN,
-                text: 'just errored?',
-                allowDropAnywhere: true,
-                disableMonitor: true,
+                opcode: 'onError',
+                blockType: BlockType.EVENT,
+                text: 'on error',
+                isEdgeActivated: false,
+                shouldRestartExistingThreads: true
               },
               {
-                opcode: 'lastlueerror',
+                opcode: 'lastError',
                 blockType: Scratch.BlockType.REPORTER,
                 text: 'last error message',
                 allowDropAnywhere: true,
