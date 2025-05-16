@@ -290,8 +290,8 @@
       no_op_4() {}
       no_op_5() {}
       no_op_6() {}
-      errorcheck() {}
-      lastluaerror() {}
+      onError() {}
+      lastError() {}
   
       _extensions() {
         // @ts-ignore
@@ -324,7 +324,7 @@
 
   }
 
-    async linkedFunctionCallbackReturn(args) {
+  async linkedFunctionCallbackReturn(args) {
 
   }
 
