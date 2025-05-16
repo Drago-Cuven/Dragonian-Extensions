@@ -8,7 +8,7 @@
  * Do not remove this comment
  */
 // @ts-ignore
-(async function () {
+(async function (Scratch) {
     // @ts-ignore
     if (!Scratch.extensions.unsandboxed) {
       throw new Error('"Dragonian Python" must be ran unsandboxed.');
@@ -28,6 +28,7 @@
 
   // @ts-ignore
   window.Module = {
+    // @ts-ignore
     // @ts-ignore
     // @ts-ignore
     locateFile: (path, prefix) => `${CDN_BASE}/${path}`
@@ -76,6 +77,7 @@
 
   // @ts-ignore
   // @ts-ignore
+  // @ts-ignore
   const pfuncargs = Symbol("pfuncargs");
 
   python.exec(`print("✅ PyPy.js is loaded and ready!")`);
@@ -121,7 +123,7 @@
           {
             opcode: 'VMState',
             // @ts-ignore
-            blockType: Scratch.BlockType.BOOLEAN,
+            blockType: BlockType.BOOLEAN,
             text: 'is python on?'
           },
           {
@@ -172,6 +174,80 @@
               func: 'evalPython',
               outputShape: 3,
             },
+              {
+                opcode: 'no_op_4',
+                blockType: BlockType.REPORTER,
+                text: 'variable [VAR]',
+                // @ts-ignore
+                outputShape: Scratch.extensions.isPenguinmod ? 5 : 3,
+                // @ts-ignore
+                blockShape: Scratch.extensions.isPenguinmod ? 5 : 3,
+                arguments: {
+                  VAR: {
+                    type: ArgumentType.STRING,
+                  },
+                },
+                allowDropAnywhere: true,
+                func: 'getVar',
+              },
+              '---',
+              //here
+              {
+                opcode: 'linkedFunctionCallback',
+                blockType: BlockType.EVENT,
+                text: 'on pfunc()',
+                isEdgeActivated: false,
+                shouldRestartExistingThreads: true
+              },
+              {
+                opcode: 'linkedFunctionCallbackReturn',
+                blockType: BlockType.COMMAND,
+                text: 'return [DATA]',
+                isTerminal: true,
+              },
+              {
+                opcode: 'no_op_5',
+                blockType: BlockType.REPORTER,
+                text: '[TYPE] arguments',
+                arguments: {
+                  TYPE: {
+                    type: ArgumentType.STRING,
+                    defaultValue: "pure",
+                    menu: "argreptypes",
+                  },
+                },
+                allowDropAnywhere: true,
+                disableMonitor: true,
+                func: 'getpfuncArgs',
+              },
+              {
+                opcode: 'no_op_6',
+                blockType: BlockType.REPORTER,
+                text: 'argument [NUM]',
+                arguments: {
+                  NUM: {
+                    type: ArgumentType.NUMBER,
+                    defaultValue: 1,
+                  },
+                },
+                allowDropAnywhere: true,
+                disableMonitor: true,
+                func: 'getpfuncArgsnum',
+              },
+              '---',
+              {
+                opcode: 'onError',
+                blockType: BlockType.EVENT,
+                text: 'on error',
+                isEdgeActivated: false,
+                shouldRestartExistingThreads: true
+              },
+              {
+                opcode: 'lastError',
+                blockType: BlockType.REPORTER,
+                text: 'last error message',
+                allowDropAnywhere: true,
+              },
         ],
           menus: {
             pythonVMdo: { acceptReporters: true, items: ["stop", "start", "reset"] },
@@ -258,4 +334,5 @@
   }
   // @ts-ignore
   Scratch.extensions.register(new extension());
-})();
+// @ts-ignore DON'T CARE!
+})(Scratch);

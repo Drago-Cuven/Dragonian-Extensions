@@ -210,7 +210,7 @@
                   },
                 },
                 allowDropAnywhere: true,
-                func: 'getLuaVar',
+                func: 'getVar',
               },
               '---',
               //here
@@ -314,7 +314,7 @@
         if (this.DEBUG) console.trace(`runBlock_JS | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
         return res; 
       }
-      async getLuaVar(args) {
+      async getVar(args) {
         const luaVar = lua.global.get(args.VAR);
         return (typeof args.VAR === 'number' || luaVar instanceof Error || luaVar == null) ? "" : luaVar;
     }
