@@ -225,6 +225,11 @@
                 opcode: 'linkedFunctionCallbackReturn',
                 blockType: BlockType.COMMAND,
                 text: 'return [DATA]',
+                arguments: {
+                  DATA: {
+                    type: ArgumentType.STRING,
+                  },
+                },
                 isTerminal: true,
               },
               {
