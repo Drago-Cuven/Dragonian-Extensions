@@ -1,7 +1,7 @@
 // @ts-check
 
 /**!
- * Dragonian Lua
+ * Drago0znzwLua
  * @version 1.0
  * @copyright MIT & LGPLv3 License
  * @comment Main development by Drago Cuven

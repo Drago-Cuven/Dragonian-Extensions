@@ -608,7 +608,7 @@
       }
 
       initCommands(util) {
-        // Register all the commands for lua.
+        // Register all the commands for python.
         util = this._constructFakeUtil(util);
         // @ts-ignore I know it "could" be undefined but it wont be
         const ref = (fn, fnn) => ((...args) => (this.Functions[fn || fnn](util, ...args)));
@@ -618,7 +618,7 @@
         python.set('pfunc', (...args) => {
           let argsString = args;
           let pfuncthread = [];
-          pfuncthread = util.startHats("Drago0znzwLua_linkedFunctionCallback");
+          pfuncthread = util.startHats("DragonianPython_linkedFunctionCallback");
           for (const thread of pfuncthread) thread[pfuncargs] = argsString;
           return pfuncthread;
         });
@@ -797,7 +797,7 @@
                   BlockType: Object.assign({}, Scratch.BlockType),
                   ArgumentType: Object.assign({}, Scratch.ArgumentType),
                 };
-                await window._luaExtensionLoader(Scratch);
+                await window._pythonExtensionLoader(Scratch);
               })(Scratch);
           `)}`,
           // @ts-ignore
@@ -810,19 +810,19 @@
             } finally {
               vm.extensionManager.securityManager.getSandboxMode = gsm;
               // @ts-ignore
-              delete window._luaExtensionLoader;
+              delete window._pythonExtensionLoader;
             }
           },
           _loadObject(object) {
             // @ts-ignore
-            window._luaExtensionLoader = object;
+            window._pythonExtensionLoader = object;
             // A extension to load the LUA extension
             return this._loadHack(this._scratchLoader);
           },
         });
       }
   
-      // Some "secret" stuff for lua to use :3
+      // Some "secret" stuff for python to use :3
       async secret_load({ url }) {
         return await vm.extensionManager.loadExtensionURL(Cast.toString(url));
       }
