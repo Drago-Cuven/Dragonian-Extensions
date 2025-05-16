@@ -55,24 +55,16 @@
   let python = new pypyjs();
     // @ts-ignore
   await python.ready(); 
-    /*
-    // @ts-ignore
-    async function resetPython() {
-      const threads = runtime.threads;
-      const oldStatus = [];
-      for (var i = 0; i < threads.length; i++) {
-        const thisThread = threads[i];
-        oldStatus.push(thisThread.status);
-        thisThread.status = 5;
+
+      let curEngine = "Turbowarp";
+      
+      if (Scratch.extensions.isPenguinMod) {
+          curEngine = "PenguinMod";
+      } else if (Scratch.extensions.isUSB) {
+          curEngine = "Unsandboxed";
+      } else if (Scratch.extensions.isNitroBolt) {
+          curEngine = "NitroBolt";
       }
-      // @ts-ignore
-      python = pypy
-      await python.ready();  
-      for (var i = 0; i < threads.length; i++) {
-        threads[i].status = oldStatus[i];
-      }
-    };
-    */
 
 
   // @ts-ignore
@@ -373,22 +365,22 @@
     }
   }
     // @ts-ignore
-    async runPython({CODE}) {
-      if (pyOn) {
-        // @ts-ignore
-        return python.exec(CODE);
-      } else {
-        throw new Error("Python VM is not running");
-      }
+    async runPython({CODE}, util) {
+      if (!pyOn) {
+          return "";
+        } else {
+          if (this.DO_INIT) this.initCommands(util);
+          return await python.exec(Cast.toString(CODE));
+        }
     }
     // @ts-ignore
-    async evalPython({CODE}) {
-      if (pyOn) {
-        // @ts-ignore
-        return python.eval(CODE);
-      } else {
-        throw new Error("Python VM is not running");
-      }
+    async evalPython({CODE}, util) {
+      if (!pyOn) {
+          return "";
+        } else {
+          if (this.DO_INIT) this.initCommands(util);
+          return await python.eval(Cast.toString(CODE));
+        }
     }
 
       // @ts-ignore
@@ -454,12 +446,33 @@
     _util(util) {
       return this.preservedUtil || util;
     }
+
     _constructFakeUtil(realUtil) {
       return this._util(realUtil) || {
         target: vm.editingTarget,
         thread: runtime.threads[0],
         stackFrame: {},
       };
+    }
+
+      runBlock({EXT, OPCODE, ARGS}, util, blockJSON) {
+        /* @author https://github.com/TheShovel/ */
+        /* @author https://scratch.mit.edu/users/0znzw/ */
+        /* @link https://github.com/PenguinMod/PenguinMod-ExtensionsGallery/blob/main/static/extensions/TheShovel/extexp.js */
+        // (and the subsequent custom functions ^)
+        if ((EXT = Cast.toString(EXT)), ((!this._extensions().includes(EXT) || EXT === '') && !runtime[`ext_${EXT}`])) return '';
+        const fn = runtime._primitives[`${EXT}_${Cast.toString(OPCODE)}`] || runtime[`ext_${EXT}`]?.[Cast.toString(OPCODE)];
+        if (!fn) return '';
+        // blockJSON is not "as" important as util
+        // util is usually required for a block to even run
+        // expect a lot of errors if it is missing
+        const res = fn(_parseJSON(ARGS), this._util(util), blockJSON || {});
+        if (this.DEBUG) console.trace(`runBlock_JS | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
+        return res; 
+      }
+      async getVar(args) {
+        const pyVar = python.get(args.VAR);
+        return (typeof args.VAR === 'number' || pyVar instanceof Error || pyVar == null) ? "" : pyVar;
     }
 
 
@@ -592,6 +605,229 @@
           // @ts-ignore
           data_listlength: (util, name) => 0,
         };
+      }
+
+      initCommands(util) {
+        // Register all the commands for lua.
+        util = this._constructFakeUtil(util);
+        // @ts-ignore I know it "could" be undefined but it wont be
+        const ref = (fn, fnn) => ((...args) => (this.Functions[fn || fnn](util, ...args)));
+        const bindHere = fn => fn.bind(this);
+
+        // Setting  pfunc
+        python.set('pfunc', (...args) => {
+          let argsString = args;
+          let pfuncthread = [];
+          pfuncthread = util.startHats("Drago0znzwLua_linkedFunctionCallback");
+          for (const thread of pfuncthread) thread[pfuncargs] = argsString;
+          return pfuncthread;
+        });
+
+        // Setting up the target
+        python.set('sprite', {
+          switch: (name) => runtime.setEditingTarget(runtime.getSpriteTargetByName(Cast.toString(name)) || runtime.getTargetForStage()),
+          x: () => util.target.x,
+          y: () => util.target.y,
+          direction: () => util.target.direction,
+          size: () => Math.round(util.target.size),
+          trueSize: () => util.target.size,
+          rotationStyle: () => util.target.rotationStyle,
+          costume: (type) => Cast.toString(type) === 'name' ? util.target.getCostumes()[util.target.currentCostume].name : util.target.currentCostume + 1,
+        });
+  
+        // Custom category: MathUtil
+        python.set('MathUtil', this.MathUtil);
+  
+        // Category: motion
+        python.set('motion', {
+          move: ref('motion_moveSteps'),
+          moveSteps: ref('motion_moveSteps'),
+          turn: ref('motion_turn'),
+          rotate: ref('motion_turn'),
+          goTo: ref('motion_goTo'),
+          setPos: ref('motion_goTo'),
+          set: ref('motion_goTo'),
+          XY: ref('motion_goTo'),
+          changePos: ref('motion_changePos'),
+          change: ref('motion_changePos'),
+          transform: ref('motion_changePos'),
+          setX: ref('motion_setX'),
+          X: ref('motion_setX'),
+          setY: ref('motion_setY'),
+          Y: ref('motion_setY'),
+          changeX: ref('motion_changeX'),
+          changeY: ref('motion_changeY'),
+          pointInDir: ref('motion_pointInDir'),
+          point: ref('motion_pointInDir'),
+          setRotationStyle: ref('motion_setRotationStyle'),
+          RotStyle: ref('motion_setRotationStyle'),
+          RotationStyle: ref('motion_setRotationStyle'),
+          ifOnEdgeBounce: ref('motion_ifOnEdgeBounce'),
+        });
+        // These require async support:
+        //   motion_glideTo
+        //   motion_glideSecsToXY
+        // Category: looks
+        python.set('looks', {
+          say: ref('looks_say'),
+          sayForSecs: ref('looks_sayForSecs'),
+          think: ref('looks_think'),
+          thinkForSecs: ref('looks_thinkForSecs'),
+          show: ref('looks_show'),
+          hide: ref('looks_hide'),
+        });
+        // Category: events
+        python.set('events', {
+          broadcast: ref('events_broadcast'),
+        });
+        // Category: control
+        python.set('control', {
+          wait: ref('control_wait'),
+        });
+        // Category: data
+        python.set('data', {
+          set(varName, value, isList) {
+            _getVarObjectFromName(Cast.toString(varName), util, Cast.toBoolean(isList) ? 'list' : '').value = value;
+          },
+          get(varName, isList) {
+            isList = Cast.toBoolean(isList);
+            const varObject = _getVarObjectFromName(Cast.toString(varName), isList ? 'list' : '');
+            if (isList) {
+              return Array.isArray(varObject.value) ? varObject.value : [varObject.value];
+            } else {
+              return varObject.value;
+            }
+          },
+        });
+        
+  
+        // Custom category: Cast
+        python.set('Cast', Cast);
+  
+        // Custom category: JS
+        python.set('JS', {
+          JSON: {
+            parse(...args) {
+              // @ts-expect-error
+              return JSON.parse(...args);
+            },
+            stringify(...args) {
+              // @ts-expect-error
+              return JSON.stringify(...args);
+            },
+          },
+          Array: {
+            new(length) {
+              return new Array(Cast.toNumber(length) || 0);
+            },
+            from(value) {
+              // @ts-ignore
+              return Array.from(value);
+            },
+            fromIndexed(object) {
+              if (Array.isArray(object)) return object;
+              if (typeof object !== 'object') return [];
+              return [];
+            },
+            toIndexed(array) {
+              if (!Array.isArray(array)) return {};
+              // @ts-ignore
+              return Object.fromEntries(array.map((v, i) => [i, v]))
+            },
+            isArray(value) {
+              return Array.isArray(value);
+            },
+          },
+          Object: {
+            create(prototype) {
+              return Object.create(prototype || {});
+            },
+            assign(a, b) {
+              // @ts-ignore
+              return Object.assign(a, b);
+            },
+            new() {
+              return Object.create(null);
+            },
+          },
+        });
+        // Custom functions
+        python.set('scratch', {
+          fetch(url, opts, ...args) {
+            opts = opts || {};
+            return Scratch.fetch(Cast.toString(url), opts, ...args);
+          },
+          preserveUtil: (function () {
+            // Util may become outdated, use this with causion!
+            this.extension.preservedUtil = this.util;
+          }).bind({util, extension: this}),
+          wipeUtil: bindHere(function () {
+            this.preservedUtil = null;
+          }),
+          primitiveRunBlock: bindHere(this.runBlock),
+          runBlock: async (EXT, OPCODE, ARGS) => {
+            const res = await this.runBlock(
+              {
+                EXT: Cast.toString(EXT),
+                OPCODE: Cast.toString(OPCODE),
+                ARGS: Cast.toString(ARGS),
+              },
+              this.preservedUtil || util,
+              // we dont have access to the REAL blockJSON
+              {},
+            );
+            if (this.DEBUG) console.trace(`runBlock_LUA | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
+            return res;
+          },
+          // This is just a cool novelty to show its possible :D
+          _scratchLoader: `data:application/javascript;base64,${btoa(`
+              (async function(Scratch) {
+                const SafeScratch = {
+                  extensions: {
+                    unsandboxed: true,
+                    register(object) {
+                      Scratch.extensions.register(object);
+                    }
+                  },
+                  Cast: Object.assign({}, Object.fromEntries(Object.getOwnPropertyNames(Scratch.Cast).flatMap(v => [
+                    'constructor', 'prototype', 'name', 'length'
+                  ].includes(v) ? [] : [[
+                    v, Scratch.Cast[v]
+                  ]]))),
+                  BlockType: Object.assign({}, Scratch.BlockType),
+                  ArgumentType: Object.assign({}, Scratch.ArgumentType),
+                };
+                await window._luaExtensionLoader(Scratch);
+              })(Scratch);
+          `)}`,
+          // @ts-ignore
+          async _loadHack(url) {
+            const gsm = vm.extensionManager.securityManager.getSandboxMode;
+            // @ts-ignore
+            vm.extensionManager.securityManager.getSandboxMode = () => Promise.resolve('unsandboxed');
+            try {
+              await vm.extensionManager.loadExtensionURL(Cast.toString(url));
+            } finally {
+              vm.extensionManager.securityManager.getSandboxMode = gsm;
+              // @ts-ignore
+              delete window._luaExtensionLoader;
+            }
+          },
+          _loadObject(object) {
+            // @ts-ignore
+            window._luaExtensionLoader = object;
+            // A extension to load the LUA extension
+            return this._loadHack(this._scratchLoader);
+          },
+        });
+      }
+  
+      // Some "secret" stuff for lua to use :3
+      async secret_load({ url }) {
+        return await vm.extensionManager.loadExtensionURL(Cast.toString(url));
+      }
+      secret_injectFunction({ namespace, args, js }) {
+        python.set(Cast.toString(namespace), (new Function('python', ...args.split(' '), js).bind(window, python)))
       }
 
   }

@@ -33,7 +33,15 @@
     await waitFinish(script);
   
     // @ts-ignore
-    const engine = "Turbowarp";
+      let curEngine = "Turbowarp";
+      
+      if (Scratch.extensions.isPenguinMod) {
+          curEngine = "PenguinMod";
+      } else if (Scratch.extensions.isUSB) {
+          curEngine = "Unsandboxed";
+      } else if (Scratch.extensions.isNitroBolt) {
+          curEngine = "NitroBolt";
+      }
   
     // @todo Find a way to embed this so it works offline
     //       and prevent global leakage
