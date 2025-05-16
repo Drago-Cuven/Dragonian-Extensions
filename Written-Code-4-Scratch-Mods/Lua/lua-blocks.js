@@ -150,7 +150,7 @@
               text: 'is lua on?',
             },
             {
-              opcode: 'disableEnableInit',
+              opcode: 'toggleInit',
               blockType: BlockType.COMMAND,
               text: 'enable scratch commands for lua? [INIT]',
               arguments: {
@@ -346,7 +346,7 @@
             luaon = false;
             break;
           case 'start':
-            if (luaon == false){
+            if (!luaon){
               await resetLua();
             luaon = true;
         }
@@ -745,7 +745,7 @@
       }
   
       // Running, etc...
-      disableEnableInit({INIT}) {
+      toggleInit({INIT}) {
         this.DO_INIT = Cast.toBoolean(INIT);
       }
       async runLua({CODE}, util) {
