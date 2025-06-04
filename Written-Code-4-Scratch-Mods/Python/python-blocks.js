@@ -164,6 +164,7 @@
       constructor() {
         this.DEBUG = true;
         this.DO_INIT = true;
+        this._lastErrorMsg = "";
         // Some things may require util
         this.preservedUtil = null;
         //this.setupClasses();
@@ -370,8 +371,16 @@
           return "";
         } else {
           if (this.DO_INIT) this.initCommands(util);
-          return await python.exec(Cast.toString(CODE));
+
         }
+          try{
+            const result = await python.exec(Cast.toString(CODE));
+            this._lastErrorMsg = "";
+            return result;
+          }catch(error){
+            this._lastErrorMsg = typeof error.message === "string" ? error.message : Cast.toString(error);
+            util.startHats("DragonianPython_onError");
+          }
     }
     // @ts-ignore
     async evalPython({CODE}, util) {
@@ -379,8 +388,16 @@
           return "";
         } else {
           if (this.DO_INIT) this.initCommands(util);
-          return await python.eval(Cast.toString(CODE));
+
         }
+          try{
+            const result = await python.eval(Cast.toString(CODE));
+            this._lastErrorMsg = "";
+            return result;
+          }catch(error){
+            this._lastErrorMsg = typeof error.message === "string" ? error.message : Cast.toString(error);
+            util.startHats("DragonianPython_onError");
+          }
     }
 
       // @ts-ignore
@@ -402,7 +419,7 @@
       // @ts-ignore
       no_op_6() {}
       onError() {}
-      lastError() {}
+      lastError() {return this._lastErrorMsg || "";}
 
   async linkedFunctionCallback(args) {
 
