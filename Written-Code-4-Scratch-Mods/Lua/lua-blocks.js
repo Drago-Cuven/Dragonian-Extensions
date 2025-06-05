@@ -223,13 +223,15 @@
       return Cast.toString(luaVar);
     }
 
+    linkedFunctionCallback(){}
+    
     linkedFunctionCallbackReturn(args, { thread }) {
       // Make sure to do this first otherwise the default return value may be returned. //what's "this"
       // this fixes an edge case where there is only 1 thread.      
       // Don't cast the return value as we don't know what it can be :3
       if (thread[sbfuncwatcher]) thread[sbfuncwatcher](args.DATA);
-      thread.stopThisScript();
-      thread.status = Thread.STATUS_DONE;
+      thread.stopThisScript(); //never defined. is this a natural scratch api function or something?
+      thread.status = Thread.STATUS_DONE; // likely has something to do with this. u sure this is right?
     }
 
     _util(util) {
@@ -443,7 +445,7 @@
             return args[0];
           });
         };
-        const threads = util.startHats('Drago0znzwLua_linkedFunctionCallback');
+        const threads = util.startHats(`${extId}_linkedFunctionCallback`);
         for (const thread of threads) {
           thread.status = Thread.STATUS_PROMISE_WAIT;
           bindAlive(thread);
@@ -634,9 +636,10 @@
         return '';
       } else {
         if (this.DO_INIT) this.initLuaCommands(util);
-
         try {
           const result = await lua.doString(Cast.toString(CODE));
+          // pops the stack
+          lua.global.pop(); 
           this._lastErrorMsg = '';
           return result ?? '';
         } catch (error) {
