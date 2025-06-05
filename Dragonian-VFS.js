@@ -3,7 +3,7 @@
  * @version 1.0
  * @copyright MIT & LGPLv3 License
  * @comment Main development by Drago Cuven
- * Do not remove this comment
+ * Do not remove this comment.
  */
 (async function (Scratch) {
     'use strict';
