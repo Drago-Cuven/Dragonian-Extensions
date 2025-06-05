@@ -141,6 +141,7 @@
     constructor() {
       this.DEBUG = true;
       this.DO_INIT = true;
+      this._curErrorMsg = '';
       this._lastErrorMsg = '';
 
       // Some things may require util
@@ -173,7 +174,9 @@
           {opcode: 'no_op_7', blockType: Scratch.BlockType.REPORTER, text: 'argument count', allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgscnt'},
           '---',
           {opcode: 'onError', blockType: BlockType.EVENT, text: 'on error', isEdgeActivated: false, shouldRestartExistingThreads: true},
-          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error message', allowDropAnywhere: true},
+          {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
+          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
+          {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
         ],
         menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}},
         customFieldTypes: extension.customFieldTypes,
@@ -195,6 +198,9 @@
     onError() {}
     lastError() {
       return this._lastErrorMsg || '';
+    }
+    curError() {
+      return this._curErrorMsg || '';
     }
 
     _extensions() {
@@ -277,6 +283,7 @@
       if (!Array.isArray(argsList)) return 0;
       return argsList.length;
     }
+    clearLastErrorMsg(){this._lastErrorMsg = '';}
 
 
 
@@ -640,10 +647,11 @@
           const result = await lua.doString(Cast.toString(CODE));
           // pops the stack
           lua.global.pop(); 
-          this._lastErrorMsg = '';
+          this._curErrorMsg = '';
           return result ?? '';
         } catch (error) {
           this._lastErrorMsg = typeof error.message === 'string' ? error.message : Cast.toString(error);
+          this._curErrorMsg = this._lastErrorMsg
           util.startHats('Drago0znzwLua_onError');
         }
 
