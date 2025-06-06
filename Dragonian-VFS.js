@@ -15,6 +15,11 @@
     let curdir = '/';
     let lastReadFile = '';
 
+
+    const extId = 'DragonianVFS';
+    let extName = 'Project VFS';
+    const { BlockType, ArgumentType, vm } = Scratch;
+
     function saveVFS() {
         if (typeof vm !== 'undefined' && vm.runtime && vm.runtime.extensionStorage) {
             vm.runtime.extensionStorage[extId] = {
@@ -24,10 +29,6 @@
             };
         }
     }
-
-    const extId = 'DragonianVFS';
-    let extName = 'Project VFS';
-    const { BlockType, ArgumentType, vm } = Scratch;
 
     function normalizePath(path, base = curdir) {
         if (!path || path === '' || path === '/') return '/';

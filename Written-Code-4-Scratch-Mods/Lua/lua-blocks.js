@@ -51,8 +51,9 @@
   // @ts-ignore I know it exists so shut it TS
   const {LuaFactory} = await import('https://cdn.jsdelivr.net/npm/wasmoon/+esm');
   const factory = new LuaFactory();
-  let canRunLUA = true; // <- this should probably be false initially
+  let canRunLUA = true; // <- this should probably be false initially // but then people will complain about it not working
   let lua = await factory.createEngine();
+
 
   // @ts-ignore
   const sbfuncArgs = Symbol('sbfuncArgs');
@@ -100,6 +101,7 @@
 
   // Resetting the lua runtime
   // @ts-ignore
+  let reloadOnStart = true; // <- this is a variable to make sure the lua engine is reset on flag click
   async function resetLua() {
     const threads = runtime.threads;
     const oldStatus = [];
@@ -166,7 +168,6 @@
           '---',
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
-          //here
           {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'on sbfunc()', isEdgeActivated: false, shouldRestartExistingThreads: true},
           {opcode: 'linkedFunctionCallbackReturn', blockType: BlockType.COMMAND, text: 'return [DATA]', arguments: {DATA: {type: ArgumentType.STRING}}, isTerminal: true},
           {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgs'},
@@ -224,10 +225,12 @@
       if (this.DEBUG) console.trace(`runBlock_JS | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
       return res;
     }
+
     getVar(args) {
-      const luaVar = lua.global.get(Cast.toString(args.VAR));
-      return Cast.toString(luaVar);
+      const v = lua.global.get(Cast.toString(args.VAR));
+      return (v === null) ? '' : v;
     }
+
 
     linkedFunctionCallback(){}
     
@@ -638,30 +641,34 @@
       this.DO_INIT = Cast.toBoolean(INIT);
     }
 
-    async runLua({CODE}, util) {
-      if (canRunLUA == false) {
-        return '';
-      } else {
-        if (this.DO_INIT) this.initLuaCommands(util);
-        try {
-          const result = await lua.doString(Cast.toString(CODE));
-          // pops the stack
-          lua.global.pop(); 
-          this._curErrorMsg = '';
-          return result ?? '';
-        } catch (error) {
-          this._lastErrorMsg = typeof error.message === 'string' ? error.message : Cast.toString(error);
-          this._curErrorMsg = this._lastErrorMsg
-          util.startHats('Drago0znzwLua_onError');
-        }
+    async runLua({ CODE }, util) {
+      if (!canRunLUA) return '';
 
-        return '';
+      if (this.DO_INIT) this.initLuaCommands(util);
+
+      try {
+          const result = await lua.doString(Cast.toString(CODE));
+          try {
+              lua.global.pop();
+          } catch (popError) {
+              console.warn('Lua stack pop error:', popError);
+          } // pop the return value from the Lua stack
+            this._curErrorMsg = '';
+          return result ?? '';
+      } catch (error) {
+          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
+          this._lastErrorMsg = message;
+          this._curErrorMsg = message;
+          util.startHats('Drago0znzwLua_onError');
+          return '';
       }
-    }
+}
+
   }
-  /*
-    runtime.on('PROJECT_START', () => resetLua ());
-    runtime.on('PROJECT_STOP_ALL', () => resetLua());
-    */
+  // need to find out how to get this to work without screwing up the vm.
+
+  runtime.on('PROJECT_START', () => reloadOnStart && resetLua());
+  runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
+
   Scratch.extensions.register((runtime.ext_secret_dragonianlua = new extension()));
 })(Scratch);
