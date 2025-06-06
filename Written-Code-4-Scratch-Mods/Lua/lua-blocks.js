@@ -667,8 +667,8 @@
   }
   // need to find out how to get this to work without screwing up the vm.
 
-  runtime.on('PROJECT_START', () => reloadOnStart && resetLua());
-  runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
+  //runtime.on('PROJECT_START', () => reloadOnStart && resetLua());
+  //runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
 
   Scratch.extensions.register((runtime.ext_secret_dragonianlua = new extension()));
 })(Scratch);
