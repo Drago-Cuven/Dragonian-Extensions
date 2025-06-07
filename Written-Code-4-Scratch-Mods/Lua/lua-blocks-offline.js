@@ -164,13 +164,13 @@
           '---',
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
-          {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'on sbfunc()', isEdgeActivated: false, shouldRestartExistingThreads: true},
+          {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'when sbfunc() is called', isEdgeActivated: false, shouldRestartExistingThreads: true},
           {opcode: 'linkedFunctionCallbackReturn', blockType: BlockType.COMMAND, text: 'return [DATA]', arguments: {DATA: {type: ArgumentType.STRING}}, isTerminal: true},
-          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgs'},
+          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, outputShape: 3, func: 'getsbfuncArgs'},
           {opcode: 'no_op_6', blockType: Scratch.BlockType.REPORTER, text: 'argument [NUM]', arguments: {NUM: {type: ArgumentType.NUMBER, defaultValue: 1}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgsnum'},
           {opcode: 'no_op_7', blockType: Scratch.BlockType.REPORTER, text: 'argument count', allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgscnt'},
           '---',
-          {opcode: 'onError', blockType: BlockType.EVENT, text: 'on error', isEdgeActivated: false, shouldRestartExistingThreads: true},
+          {opcode: 'onError', blockType: BlockType.EVENT, text: 'when catching an error', isEdgeActivated: false, shouldRestartExistingThreads: true},
           {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
           {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
           {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
@@ -482,6 +482,7 @@
 
       // Category: motion
       lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
+      
       // These require async support:
       //   motion_glideTo
       //   motion_glideSecsToXY
