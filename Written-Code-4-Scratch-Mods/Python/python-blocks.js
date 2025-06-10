@@ -267,7 +267,7 @@
     async pythonVMdo(args) {
       switch (args.ACTION) {
         case 'stop':
-          python.global.close();
+          python = null;
           canRunPYTHON = false;
           break;
         case 'start':
@@ -278,6 +278,7 @@
           break;
         default:
           canRunPYTHON = false;
+          python = null;
           await resetPython();
           canRunPYTHON = true;
           break;
