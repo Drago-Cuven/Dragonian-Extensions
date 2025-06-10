@@ -142,7 +142,7 @@
         name: 'Python',
         color1: '#4584b6',
         color2: '#ffde57',
-        color3: '#646464',
+        color3: '#646464', 
         menuIconURI,
         blocks: [
           {blockType: BlockType.LABEL, text: 'VM'},
