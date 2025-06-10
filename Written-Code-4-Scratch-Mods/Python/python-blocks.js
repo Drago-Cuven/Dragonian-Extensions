@@ -157,8 +157,8 @@
           {opcode: 'runMainScriptWhen', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'always', menu: 'RMSW'}}, func: 'runMainScriptWhen', hideFromPalette: !this.allowMainScript},
           {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !this.allowMainScript},
           {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !this.allowMainScript},
-          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`}}, func: 'runPython'},
-          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`}}, func: 'runPython', outputShape: 3},
+          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: '# data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", False) \nprint(data.get("my variable", False))'}}, func: 'runPython'},
+          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: '# data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", False) \nprint(data.get("my variable", False))'}}, func: 'runPython', outputShape: 3},
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
           {blockType: BlockType.LABEL, text: 'Python Bridge'},
@@ -513,6 +513,10 @@
       // Category: control
       python.globals.set('control', {wait: ref('control_wait')});
       // Category: data
+      /*
+      python.globals.set('data', {var: ref('data_setvar')});
+      */
+
       python.globals.set('data', {
         set(varName, value, isList) {
           _getVarObjectFromName(Cast.toString(varName), util, Cast.toBoolean(isList) ? 'list' : '').value = value;
