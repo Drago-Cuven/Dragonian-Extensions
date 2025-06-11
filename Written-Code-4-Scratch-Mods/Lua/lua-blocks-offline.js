@@ -43,6 +43,9 @@
 
   let lua = new LuaEngine(LuaLib, {});
   let canRunLUA = true; // <- this should probably be false initially // but then people will complain about it not working
+  let allowMainScript = ((runtime.extensionStorage[extId] ??= {}).allowMainScript ??= false);
+  let luaMainScript = ((runtime.extensionStorage[extId] ??= {}).luaMainScript ||= '');
+  let runMainScriptWhen = ((runtime.extensionStorage[extId] ??= {}).runMainScriptWhen ||= 'never');
 
 
   // @ts-ignore
@@ -127,17 +130,9 @@
       this._lastErrorMsg = '';
       this._curMainErrorMsg = '';
       this._lastMainErrorMsg = '';
-      this.allowMainScript = ((this.runtime = runtime).extensionStorage[extId] ??= {}).allowMainScript ?? false;
-      //this.luaMainScript = ((this.runtime = runtime).extensionStorage[extId] ??= {}).luaMainScript || '';
-      //this.runMainScriptWhen = ((this.runtime = runtime).extensionStorage[extId] ??= {}).runMainScriptWhen || 'never';
-      // Some things may require util
+      //Some things may require util
       this.preservedUtil = null;
       this.setupClasses();
-      runtime.on('PROJECT_START', () => { if (reloadOnStart) resetLua(); if (this.allowMainScript && this.runMainScriptWhen === 'on start') this.runMainScript(Cast.toString(this.luaMainScript), util); });
-      runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
-      runtime.on('BEFORE_EXECUTE', () => this.allowMainScript && this.runMainScriptWhen === 'always' && this.runMainScript(this.luaMainScript));
-
-
     }
     getInfo() {
       const MoreFields = extension.MoreFields;
@@ -157,12 +152,14 @@
           '---',
           {blockType: BlockType.LABEL, text: 'Lua Code'},
           "---",
-          {blockType: BlockType.BUTTON, func: 'mainScriptToggle', text: this.allowMainScript ? "Disable Main Script": 'Enable Main Script', hideFromPalette: true},
-          {opcode: 'runMainScriptWhen', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'always', menu: 'RMSW'}}, func: 'runMainScriptWhen', hideFromPalette: !this.allowMainScript},
-          {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !this.allowMainScript},
-          {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !this.allowMainScript},
+          {blockType: BlockType.BUTTON, func: 'mainScriptToggle', text: allowMainScript ? "Disable Main Script": 'Enable Main Script', hideFromPalette: false},
+          {opcode: 'runMainScript', blockType: BlockType.EVENT, text: 'rms(you shouldnt be seeing this)', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: true},
+          {opcode: 'runMainScriptOn', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'never', menu: 'RMSW'}}, func: 'runMainScriptOn', hideFromPalette: !allowMainScript},
+          {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !allowMainScript},
+          {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !allowMainScript},
           {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`}}, func: 'runLua'},
           {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`}}, func: 'runLua', outputShape: 3},
+          "---",
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
           {blockType: BlockType.LABEL, text: 'Lua Bridge'},
@@ -179,12 +176,12 @@
           {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
           {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
           {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
-          {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message', hideFromPalette: !this.allowMainScript}
+          {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !allowMainScript},
+          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message', hideFromPalette: !allowMainScript}
         ],
-        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}, RMSW: {acceptReporters: true, items: ['on start', 'always']}},
+        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}},
         customFieldTypes: extension.customFieldTypes,
       };
     }
@@ -243,12 +240,10 @@
       return (v === null) ? '' : v;
     }
 
-    mainScriptToggle() { (this.allowMainScript = !(this.allowMainScript), this.runtime.extensionStorage[extId].allowMainScript = this.allowMainScript, Scratch.vm.extensionManager.refreshBlocks()); }
-    setMainScript({ CODE }) { (this.runtime.extensionStorage[extId] ??= {}).luaMainScript = this.luaMainScript = Cast.toString(CODE); }
-    getMainScript(){return Cast.toString(this.luaMainScript);}
-    runMainScriptWhen(args){
-
-    }
+    mainScriptToggle() { (allowMainScript = !(allowMainScript), runtime.extensionStorage[extId].allowMainScript = allowMainScript, Scratch.vm.extensionManager.refreshBlocks()); }
+    setMainScript({ CODE }) { (runtime.extensionStorage[extId] ??= {}).luaMainScript = luaMainScript = Cast.toString(CODE); }
+    getMainScript(){return Cast.toString(luaMainScript);}
+    runMainScriptOn(args){(runMainScriptWhen = args.RMSW, runtime.extensionStorage[extId].runMainScriptWhen = runMainScriptWhen)}
 
     linkedFunctionCallback(){}
     
@@ -661,13 +656,14 @@
       this.DO_INIT = Cast.toBoolean(INIT);
     }
 
-    async runMainScript({ CODE }, util) {
-      if (!canRunLUA || CODE === '') return '';
+    async runMainScript(util) {
+      console.log("trying to run main script");
+      if (!canRunLUA || luaMainScript === '') return '';
 
       if (this.DO_INIT) this.initLuaCommands(util);
 
       try {
-          const result = await lua.doString(Cast.toString(CODE));
+          const result = await lua.doString(Cast.toString(luaMainScript));
           try {
               lua.global.pop();
           } catch (popError) {
@@ -685,7 +681,7 @@
     }
 
     async runLua({ CODE }, util) {
-      if (!canRunLUA) return '';
+      if (!canRunLUA || CODE === '') return '';
 
       if (this.DO_INIT) this.initLuaCommands(util);
 
@@ -708,7 +704,11 @@
   }
 }
 
-  Scratch.vm.runtime.on('EXTENSION_ADDED',d=>d?.id==='0znzwMoreFields'&&reloadBlocks())
+runtime.on('EXTENSION_ADDED', d => d?.id === '0znzwMoreFields' && reloadBlocks());
+runtime.on('PROJECT_START', () => { if (reloadOnStart) resetLua(); if (allowMainScript && canRunLUA && runMainScriptWhen === 'on start') Scratch.vm.runtime.startHats(`${extId}_runMainScript`); });
+runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
+runtime.on('BEFORE_EXECUTE', () => allowMainScript && canRunLUA && runMainScriptWhen === 'always' && Scratch.vm.runtime.startHats(`${extId}_runMainScript`));
+
   // need to find out how to get this to work without screwing up the vm.
 
   Scratch.extensions.register((runtime.ext_secret_dragonianlua = new extension()));
