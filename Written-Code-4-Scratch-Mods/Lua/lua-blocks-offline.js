@@ -71,7 +71,7 @@
     if (typeof res === 'number') return `[number ${res}]`;
     return `[string|empty <\n${res}\n>]`;
   };
-  
+
   const _getVarObjectFromName = (name, util, type) => {
     const stageTarget = runtime.getTargetForStage();
     const target = util.target;
@@ -181,7 +181,7 @@
           {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !allowMainScript},
           {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
           {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
-          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message', hideFromPalette: !allowMainScript}
+          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last main script error message', hideFromPalette: !allowMainScript}
         ],
         menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}},
         customFieldTypes: extension.customFieldTypes,
