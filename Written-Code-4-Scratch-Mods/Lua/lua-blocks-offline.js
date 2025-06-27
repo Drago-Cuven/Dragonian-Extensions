@@ -71,6 +71,7 @@
     if (typeof res === 'number') return `[number ${res}]`;
     return `[string|empty <\n${res}\n>]`;
   };
+  
   const _getVarObjectFromName = (name, util, type) => {
     const stageTarget = runtime.getTargetForStage();
     const target = util.target;
@@ -456,7 +457,7 @@ getsbfuncArgs(args, { thread }) {
     data_listitem: (util, name, pos) => {
       const list = util.target.lists[Cast.toString(name)];
       const index = Cast.toNumber(pos) - 1;
-      return list?.value[index];
+      return Cast.toString(list?.value[index]);
     },
     data_listitemnum: (util, name, item) => {
       const list = util.target.lists[Cast.toString(name)];
@@ -464,8 +465,8 @@ getsbfuncArgs(args, { thread }) {
     },
     data_makelist: (util, name) => runtime.emit('LIST_CREATE', Cast.toString(name), 'global', false),
     data_deletelist: (util, name) => runtime.emit('LIST_DELETE', Cast.toString(name), 'global'),
-    data_getvars: (util) => Object.values(util.target.variables),
-    data_getlists: (util) => Object.values(util.target.lists),
+    data_getvars: (util) => Cast.toString(Object.values(util.target.variables)),
+    data_getlists: (util) => Cast.toString(Object.values(util.target.lists)),
     data_listlength: (util, name) => {
       const list = util.target.lists[Cast.toString(name)];
       return list ? list.value.length : 0;
@@ -536,27 +537,126 @@ getsbfuncArgs(args, { thread }) {
         }
         return res;
       });
-      // Setting up the target // idk lmao
-      lua.global.set('sprite', {switch: (name) => runtime.setEditingTarget(runtime.getSpriteTargetByName(Cast.toString(name)) || runtime.getTargetForStage()), x: () => util.target.x, y: () => util.target.y, direction: () => util.target.direction, size: () => Math.round(util.target.size), trueSize: () => util.target.size, rotationStyle: () => util.target.rotationStyle, costume: (type) => (Cast.toString(type) === 'name' ? util.target.getCostumes()[util.target.currentCostume].name : util.target.currentCostume + 1)});
+      // Setting up the target 
+      lua.global.set('sprite', {switch: (name) => runtime.setEditingTarget(runtime.getSpriteTargetByName(Cast.toString(name)) || runtime.getTargetForStage()), x: () => util.target.x, y: () => util.target.y, direction: () => util.target.direction, size: () => Math.round(util.target.size), trueSize: () => util.target.size, rotationStyle: () => util.target.rotationStyle, costume: (type) => (Cast.toString(type) === 'name' ? util.target.getCostumes()[util.target.currentCostume].name : util.target.currentCostume + 1), name: () => Cast.toString(util.target.name)});
 
       // Custom category: MathUtil
       lua.global.set('MathUtil', this.MathUtil);
+      // Category: sounds
+      lua.global.set('sounds', {
+        play: ref('sounds_play'),
+        playSound: ref('sounds_play'),
+        stopAll: ref('sounds_stopAll'),
+        stop: ref('sounds_stopAll'),
+        setVolume: ref('sounds_setVolume'),
+        changeVolume: ref('sounds_changeVolume'),
+        volume: ref('sounds_volume'),
+        getVolume: ref('sounds_volume'),
+        effect: ref('sounds_effects'),
+        setEffect: ref('sounds_effects')
+      });
+
+      // Category: events
+      lua.global.set('events', {
+        broadcast: ref('events_broadcast'),
+        broadcastAndWait: ref('events_broadcastandwait'),
+        trigger: ref('events_broadcast'),
+        emit: ref('events_broadcast')
+      });
+
+      // Category: control
+      lua.global.set('control', {
+        wait: ref('control_wait'),
+        sleep: ref('control_wait'),
+        delay: ref('control_wait'),
+        clone: ref('control_clone'),
+        createClone: ref('control_clone'),
+        deleteClone: ref('control_deleteClone'),
+        removeClone: ref('control_deleteClone')
+      });
+
+      // Category: sensing
+      lua.global.set('sensing', {
+        loudness: ref('sensing_loudness'),
+        loud: ref('sensing_loud'),
+        isLoud: ref('sensing_loud'),
+        mouseX: ref('sensing_mouseX'),
+        mouseY: ref('sensing_mouseY'),
+        mouseDown: ref('sensing_mouseDown'),
+        timer: ref('sensing_timer'),
+        resetTimer: ref('sensing_resettimer'),
+        username: ref('sensing_username'),
+        current: ref('sensing_current'),
+        daysSince2000: ref('sensing_dayssince2000'),
+        distanceTo: ref('sensing_distanceto'),
+        colorTouching: ref('sensing_colorIsTouchingColor'),
+        touchingColor: ref('sensing_touchingcolor'),
+        touchingObject: ref('sensing_touchingobject'),
+        keyPressed: ref('sensing_keypressed'),
+        key: ref('sensing_keypressed'),
+        ask: ref('sensing_ask'),
+        answer: ref('sensing_answer')
+      });
+
+      // Category: data
+      lua.global.set('data', {
+        setVar: ref('data_setvar'),
+        getVar: ref('data_getvar'),
+        changeVar: ref('data_changevar'),
+        makeVar: ref('data_makevar'),
+        createVar: ref('data_makevar'),
+        deleteVar: ref('data_deletevar'),
+        showVar: ref('data_showvar'),
+        hideVar: ref('data_hidevar'),
+        makeList: ref('data_makelist'),
+        createList: ref('data_makelist'),
+        deleteList: ref('data_deletelist'),
+        getList: ref('data_getlist'),
+        setList: ref('data_setlist'),
+        addToList: ref('data_addtolist'),
+        push: ref('data_addtolist'),
+        append: ref('data_addtolist'),
+        remove: ref('data_removefromlist'),
+        removeFromList: ref('data_removefromlist'),
+        pull: ref('data_removefromlist'),
+        clear: ref('data_clearlist'),
+        replace: ref('data_replacelistitem'),
+        item: ref('data_listitem'),
+        getFromList: ref('data_listitem'),
+        itemNum: ref('data_listitemnum'),
+        length: ref('data_listlength'),
+        size: ref('data_listlength'),
+        getVars: ref('data_getvars'),
+        getLists: ref('data_getlists')
+      });
 
       // Category: motion
-lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
+      lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
 
-lua.global.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), speak: ref('looks_say'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide'), getCostume: ref('looks_getCostume'), setCostume: ref('looks_setCostume'), costume: ref('looks_getCostume'), nextCostume: ref('looks_nextCostume'), lastCostume: ref('looks_lastCostume'), getSize: ref('looks_getSize'), size: ref('looks_getSize'), setSize: ref('looks_setSize'), changeSize: ref('looks_changeSize'), setEffect: ref('looks_setEffect'), changeEffect: ref('looks_changeEffect'), effectClear: ref('looks_effectClear'), clearEffects: ref('looks_effectClear')});
+      lua.global.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), speak: ref('looks_say'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide'), getCostume: ref('looks_getCostume'), setCostume: ref('looks_setCostume'), costume: ref('looks_getCostume'), nextCostume: ref('looks_nextCostume'), lastCostume: ref('looks_lastCostume'), getSize: ref('looks_getSize'), size: ref('looks_getSize'), setSize: ref('looks_setSize'), changeSize: ref('looks_changeSize'), setEffect: ref('looks_setEffect'), changeEffect: ref('looks_changeEffect'), effectClear: ref('looks_effectClear'), clearEffects: ref('looks_effectClear')});
 
-lua.global.set('sounds', {play: ref('sounds_play'), playSound: ref('sounds_play'), stopAll: ref('sounds_stopAll'), stop: ref('sounds_stopAll'), setVolume: ref('sounds_setVolume'), changeVolume: ref('sounds_changeVolume'), volume: ref('sounds_volume'), getVolume: ref('sounds_volume'), effect: ref('sounds_effects'), setEffect: ref('sounds_effects')});
 
-lua.global.set('events', {broadcast: ref('events_broadcast'), broadcastAndWait: ref('events_broadcastandwait'), trigger: ref('events_broadcast'), emit: ref('events_broadcast')});
 
-lua.global.set('control', {wait: ref('control_wait'), sleep: ref('control_wait'), delay: ref('control_wait'), clone: ref('control_clone'), createClone: ref('control_clone'), deleteClone: ref('control_deleteClone'), removeClone: ref('control_deleteClone')});
+const luaMath = lua.global.get('math');
 
-lua.global.set('sensing', {loudness: ref('sensing_loudness'), loud: ref('sensing_loud'), isLoud: ref('sensing_loud'), mouseX: ref('sensing_mouseX'), mouseY: ref('sensing_mouseY'), mouseDown: ref('sensing_mouseDown'), timer: ref('sensing_timer'), resetTimer: ref('sensing_resettimer'), username: ref('sensing_username'), current: ref('sensing_current'), daysSince2000: ref('sensing_dayssince2000'), distanceTo: ref('sensing_distanceto'), colorTouching: ref('sensing_colorIsTouchingColor'), touchingColor: ref('sensing_touchingcolor'), touchingObject: ref('sensing_touchingobject'), keyPressed: ref('sensing_keypressed'), key: ref('sensing_keypressed'), ask: ref('sensing_ask'), answer: ref('sensing_answer')});
+Object.assign(luaMath, {
+  e: Math.E,
+  log2: Math.log2,
+  expm1: Math.expm1,
+  log1p: Math.log1p,
+  cbrt: Math.cbrt,
+  hypot: Math.hypot,
+  sign: Math.sign,
+  trunc: Math.trunc,
+  round: Math.round,
+  clz32: Math.clz32,
+  fround: Math.fround,
+  imul: Math.imul
+});
 
-lua.global.set('data', {setVar: ref('data_setvar'), getVar: ref('data_getvar'), changeVar: ref('data_changevar'), makeVar: ref('data_makevar'), createVar: ref('data_makevar'), deleteVar: ref('data_deletevar'), showVar: ref('data_showvar'), hideVar: ref('data_hidevar'), makeList: ref('data_makelist'), createList: ref('data_makelist'), deleteList: ref('data_deletelist'), getList: ref('data_getlist'), setList: ref('data_setlist'), add: ref('data_addtolist'), append: ref('data_addtolist'), remove: ref('data_removefromlist'), clear: ref('data_clearlist'), replace: ref('data_replacelistitem'), item: ref('data_listitem'), itemNum: ref('data_listitemnum'), length: ref('data_listlength'), size: ref('data_listlength'), getVars: ref('data_getvars'), getLists: ref('data_getlists')});
+lua.global.set('math', luaMath);
 
+lua.global.set('os', {time:()=>Math.floor(Date.now()/1000),date:(f,t)=>{const d=new Date((t||Math.floor(Date.now()/1000))*1000);return f==='*t'?{year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),min:d.getMinutes(),sec:d.getSeconds(),wday:d.getDay()+1,yday:Math.floor((d-new Date(d.getFullYear(),0,0))/86400000),isdst:0}:d.toISOString()},difftime:(t1,t2)=>t1-t2,clock:(()=>{const s=performance.now();return()=> (performance.now()-s)/1000})()});
 
 
 
@@ -610,6 +710,7 @@ lua.global.set('data', {setVar: ref('data_setvar'), getVar: ref('data_getvar'), 
           },
         },
       });
+
       // Custom functions
       lua.global.set('scratch', {
         fetch(url, opts, ...args) {
