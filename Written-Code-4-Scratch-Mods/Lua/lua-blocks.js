@@ -28,18 +28,7 @@
     vm.exports.i_will_not_ask_for_help_when_these_break().Thread
   );
 
-  // @todo Find a way to embed this so it works offline
-  //       and prevent global leakage
-  function waitFinish(script) {
-    // @ts-ignore
-    return new Promise((resolve) => {
-      script.addEventListener('load', resolve);
-    });
-  }
-  const script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/ace-builds@1.36.2/src-min/ace.js';
-  document.head.appendChild(script);
-  await waitFinish(script);
+  function reloadBlocks(){Scratch.vm.extensionManager.refreshBlocks()}
 
   // Currently this can be used on TurboWarp via staging.
   // https://staging.turbowarp.org/
@@ -51,8 +40,11 @@
   // @ts-ignore I know it exists so shut it TS
   const {LuaFactory} = await import('https://cdn.jsdelivr.net/npm/wasmoon/+esm');
   const factory = new LuaFactory();
-  let canRunLUA = true; // <- this should probably be false initially // but then people will complain about it not working
   let lua = await factory.createEngine();
+  let canRunLUA = true; // <- this should probably be false initially // but then people will complain about it not working
+  let allowMainScript = ((runtime.extensionStorage[extId] ??= {}).allowMainScript ??= false);
+  let luaMainScript = ((runtime.extensionStorage[extId] ??= {}).luaMainScript ||= '');
+  let runMainScriptWhen = ((runtime.extensionStorage[extId] ??= {}).runMainScriptWhen ||= 'never');
 
 
   // @ts-ignore
@@ -103,18 +95,8 @@
   // @ts-ignore
   let reloadOnStart = true; // <- this is a variable to make sure the lua engine is reset on flag click
   async function resetLua() {
-    const threads = runtime.threads;
-    const oldStatus = [];
-    for (var i = 0; i < threads.length; i++) {
-      const thisThread = threads[i];
-      oldStatus.push(thisThread.status);
-      thisThread.status = 5;
-    }
     lua.global.close();
-    lua = await factory.createEngine();
-    for (var i = 0; i < threads.length; i++) {
-      threads[i].status = oldStatus[i];
-    }
+    lua = new LuaEngine(LuaLib, {});
   }
 
   const cbfsb = runtime._convertBlockForScratchBlocks.bind(runtime);
@@ -145,8 +127,9 @@
       this.DO_INIT = true;
       this._curErrorMsg = '';
       this._lastErrorMsg = '';
-
-      // Some things may require util
+      this._curMainErrorMsg = '';
+      this._lastMainErrorMsg = '';
+      //Some things may require util
       this.preservedUtil = null;
       this.setupClasses();
     }
@@ -160,26 +143,43 @@
         color3: '#ffffff',
         menuIconURI,
         blocks: [
+          {blockType: BlockType.LABEL, text: 'VM'},
+          "---",
           {opcode: 'VMState', func: 'isLUAenabled', blockType: BlockType.BOOLEAN, text: 'is lua on?'},
           {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for lua? [INIT]', arguments: {INIT: {type: ArgumentType.BOOLEAN}}},
           {opcode: 'luaVMdo', blockType: BlockType.COMMAND, text: '[ACTION] lua vm', arguments: {ACTION: {type: ArgumentType.STRING, menu: `luaVMdo`, defaultValue: `stop`}}, func: 'luaVMdo'},
+          '---',
+          {blockType: BlockType.LABEL, text: 'Lua Code'},
+          "---",
+          {blockType: BlockType.BUTTON, func: 'mainScriptToggle', text: allowMainScript ? "Disable Main Script": 'Enable Main Script', hideFromPalette: false},
+          {opcode: 'runMainScriptOn', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'never', menu: 'RMSW'}}, func: 'runMainScriptOn', hideFromPalette: !allowMainScript},
+          {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !allowMainScript},
+          {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !allowMainScript},
           {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`}}, func: 'runLua'},
           {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`}}, func: 'runLua', outputShape: 3},
-          '---',
+          "---",
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
-          {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'on sbfunc()', isEdgeActivated: false, shouldRestartExistingThreads: true},
+          {blockType: BlockType.LABEL, text: 'Lua Bridge'},
+          "---",
+          {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'when sbfunc() is called', isEdgeActivated: false, shouldRestartExistingThreads: true},
           {opcode: 'linkedFunctionCallbackReturn', blockType: BlockType.COMMAND, text: 'return [DATA]', arguments: {DATA: {type: ArgumentType.STRING}}, isTerminal: true},
-          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgs'},
+          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, outputShape: 3, func: 'getsbfuncArgs'},
           {opcode: 'no_op_6', blockType: Scratch.BlockType.REPORTER, text: 'argument [NUM]', arguments: {NUM: {type: ArgumentType.NUMBER, defaultValue: 1}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgsnum'},
           {opcode: 'no_op_7', blockType: Scratch.BlockType.REPORTER, text: 'argument count', allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgscnt'},
-          '---',
-          {opcode: 'onError', blockType: BlockType.EVENT, text: 'on error', isEdgeActivated: false, shouldRestartExistingThreads: true},
+           '---',
+          {blockType: BlockType.LABEL, text: 'Lua Errors'},
+          "---",
+          {opcode: 'onError', blockType: BlockType.EVENT, text: 'when catching an error', isEdgeActivated: false, shouldRestartExistingThreads: true,},
           {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
           {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
           {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
+          {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !allowMainScript},
+          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message', hideFromPalette: !allowMainScript}
         ],
-        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}},
+        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}},
         customFieldTypes: extension.customFieldTypes,
       };
     }
@@ -197,11 +197,18 @@
     no_op_6() {}
     no_op_7() {}
     onError() {}
+    onMainError() {}
     lastError() {
       return this._lastErrorMsg || '';
     }
     curError() {
       return this._curErrorMsg || '';
+    }
+    lastMainError() {
+      return this._lastMainErrorMsg || '';
+    }
+    curMainError() {
+      return this._curMainErrorMsg || '';
     }
 
     _extensions() {
@@ -231,6 +238,10 @@
       return (v === null) ? '' : v;
     }
 
+    mainScriptToggle() { (allowMainScript = !(allowMainScript), runtime.extensionStorage[extId].allowMainScript = allowMainScript, Scratch.vm.extensionManager.refreshBlocks()); }
+    setMainScript({ CODE }) { (runtime.extensionStorage[extId] ??= {}).luaMainScript = luaMainScript = Cast.toString(CODE); }
+    getMainScript(){return Cast.toString(luaMainScript);}
+    runMainScriptOn(args){(runMainScriptWhen = args.RMSW, runtime.extensionStorage[extId].runMainScriptWhen = runMainScriptWhen)}
 
     linkedFunctionCallback(){}
     
@@ -287,6 +298,7 @@
       return argsList.length;
     }
     clearLastErrorMsg(){this._lastErrorMsg = '';}
+    clearLastMainErrorMsg(){this._lastMainErrorMsg = '';}
 
 
 
@@ -486,6 +498,7 @@
 
       // Category: motion
       lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
+      
       // These require async support:
       //   motion_glideTo
       //   motion_glideSecsToXY
@@ -641,6 +654,30 @@
       this.DO_INIT = Cast.toBoolean(INIT);
     }
 
+    async runMainScript({ CODE }, util) {
+      console.log(CODE, util);
+      if (!canRunLUA || CODE === '') return '';
+
+      if (this.DO_INIT) this.initLuaCommands(util);
+
+      try {
+          const result = await lua.doString(Cast.toString(CODE));
+          try {
+              lua.global.pop();
+          } catch (popError) {
+              console.log('prevented popstack error. ignore any aborts');
+          } // pop the return value from the Lua stack
+            this._curErrorMsg = '';
+          return result ?? '';
+      } catch (error) {
+          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
+          this._lastMainErrorMsg = message;
+          this._curMainErrorMsg = message;
+          vm.runtime.startHats('Drago0znzwLua_onMainError');
+          return '';
+      }
+    }
+
     async runLua({ CODE }, util) {
       if (!canRunLUA) return '';
 
@@ -651,7 +688,7 @@
           try {
               lua.global.pop();
           } catch (popError) {
-              console.warn('Lua stack pop error:', popError);
+              console.log('prevented popstack error. ignore any aborts');
           } // pop the return value from the Lua stack
             this._curErrorMsg = '';
           return result ?? '';
@@ -662,13 +699,14 @@
           util.startHats('Drago0znzwLua_onError');
           return '';
       }
+  }
 }
 
-  }
+Scratch.vm.runtime.on('EXTENSION_ADDED', d => d?.id === '0znzwMoreFields' && reloadBlocks());
+runtime.on('PROJECT_START', () => { if (reloadOnStart) resetLua(); console.log(allowMainScript, canRunLUA, runMainScriptWhen == 'on start'); if (allowMainScript && canRunLUA && runMainScriptWhen == 'on start') runtime.ext_secret_dragonianlua.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["Drago0znzwLua"].luaMainScript}); });
+runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
+runtime.on('BEFORE_EXECUTE', () => {if (allowMainScript && canRunLUA && runMainScriptWhen == 'always') runtime.ext_secret_dragonianlua.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["Drago0znzwLua"].luaMainScript})});
   // need to find out how to get this to work without screwing up the vm.
-
-  //runtime.on('PROJECT_START', () => reloadOnStart && resetLua());
-  //runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
 
   Scratch.extensions.register((runtime.ext_secret_dragonianlua = new extension()));
 })(Scratch);
