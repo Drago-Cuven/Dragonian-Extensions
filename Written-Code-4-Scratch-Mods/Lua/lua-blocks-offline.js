@@ -27,6 +27,7 @@
     // TurboWarp and forks
     vm.exports.i_will_not_ask_for_help_when_these_break().Thread
   );
+  const soundCategory = runtime.ext_scratch3_sound;
 
   function reloadBlocks(){Scratch.vm.extensionManager.refreshBlocks()}
 
@@ -146,7 +147,6 @@
         color3: '#ffffff',
         menuIconURI,
         blocks: [
-          {blockType: BlockType.LABEL, text: 'VM'},
           "---",
           {opcode: 'VMState', func: 'isLUAenabled', blockType: BlockType.BOOLEAN, text: 'is lua on?'},
           {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for lua? [INIT]', arguments: {INIT: {type: ArgumentType.BOOLEAN}}},
@@ -158,8 +158,8 @@
           {opcode: 'runMainScriptOn', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'never', menu: 'RMSW'}}, func: 'runMainScriptOn', hideFromPalette: !allowMainScript},
           {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !allowMainScript},
           {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !allowMainScript},
-          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`}}, func: 'runLua'},
-          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`}}, func: 'runLua', outputShape: 3},
+          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", false) \nprint(data.get("my variable"))`}}, func: 'runLua', filter: [Scratch.TargetType.SPRITE]},
+          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run lua [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `--data.set("variable", "value", is a list?) \ndata.set("my variable", "Success!", false) \nreturn(data.get("my variable"))`}}, func: 'runLua', outputShape: 3, filter: [Scratch.TargetType.SPRITE]},
           "---",
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
@@ -336,112 +336,142 @@ getsbfuncArgs(args, { thread }) {
         motion_ifOnEdgeBounce: (util) => runtime.ext_scratch3_motion._ifOnEdgeBounce.call(runtime.ext_scratch3_motion, util.target),
 
         // Looks
-        looks_say: (util, msg) => runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
+        looks_say: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
         looks_sayForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
-        looks_think: (util, msg) => runtime.emit(runtime.ext_scratch3_looks.SAY_OR_THINK, util.target, 'think', Cast.toString(msg)),
+        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.emit(runtime.ext_scratch3_looks.SAY_OR_THINK, util.target, 'think', Cast.toString(msg)),
         looks_thinkForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
         looks_show: (util) => runtime.ext_scratch3_looks.show.call(runtime.ext_scratch3_looks, null, util),
         looks_hide: (util) => runtime.ext_scratch3_looks.hide.call(runtime.ext_scratch3_looks, null, util),
-        looks_getCostume: (util, costume) => 0,
-        looks_setCostume: (util, costume) => 0,
-        looks_nextCostume: (util, costume) => 0,
-        looks_lastCostume: (util, costume) => 0,
-        looks_getSize: (util, costume) => 0,
-        looks_setSize: (util, costume) => 0,
-        looks_changeSize: (util, costume) => 0,
-        looks_setEffect: (util, costume) => 0,
-        looks_changeEffect: (util, costume) => 0,
-        looks_effectClear: (util, costume) => 0,
+        looks_getCostume: (util) => util.target.getCostume().name,
+        looks_setCostume: (util, costume) => util.target.setCostume(costume),
+        looks_nextCostume: (util) => util.target.setCostume(util.target.currentCostume + 1),
+        looks_lastCostume: (util) => util.target.setCostume(util.target.currentCostume - 1),
+        looks_getSize: (util) => util.target.size,
+        looks_setSize: (util, size) => util.target.setSize(Cast.toNumber(size)),
+        looks_changeSize: (util, size) => util.target.setSize(util.target.size + Cast.toNumber(size)),
+        looks_setEffect: (util, effect, value) => util.target.effects.set(Cast.toString(effect), Cast.toNumber(value)),
+        looks_changeEffect: (util, effect, value) => {
+          const current = util.target.effects.get(Cast.toString(effect)) || 0;
+          util.target.effects.set(Cast.toString(effect), current + Cast.toNumber(value));
+        },
+        looks_effectClear: (util) => util.target.effects.clear(),
 
         //Events
         events_broadcast: (util, msg) => util.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: msg}),
-        // @ts-ignore
-        events_broadcastandwait: (util, msg) => 0,
+        events_broadcastandwait: (util, msg) => runtime.ext_scratch3_events.broadcastAndWait({BROADCAST_OPTION: msg}, util),
 
         // Control
         // @ts-ignore
         control_wait: (_, seconds) => new Promise((resolve) => setTimeout(resolve, Cast.toNumber(seconds) * 1000)),
-        // @ts-ignore
-        control_clone: (util, spr) => 0,
-        // @ts-ignore
-        control_deleteClone: (util) => 0,
+        control_clone: (util) => runtime.ext_scratch3_control.createClone(util),
+        control_deleteClone: (util) => util.target.removeClone(),
 
         //Sensing
         // @ts-ignore
-        sensing_loudness: (util) => 0,
-        // @ts-ignore
-        sensing_loud: (util) => 0,
+        sensing_loudness: () => runtime.ioDevices.audio.getLoudness(),
+        sensing_loud: () => runtime.ioDevices.audio.getLoudness() > 10,
         sensing_mouseX: () => runtime.ioDevices.mouse._scratchX,
         sensing_mouseY: () => runtime.ioDevices.mouse._scratchY,
         // @ts-ignore
         sensing_mouseDown: (util) => runtime.ioDevices.mouse,
         // @ts-ignore
-        sensing_timer: (util) => 0,
-        // @ts-ignore
-        sensing_resettimer: (util) => 0,
-        // @ts-ignore
-        sensing_username: (util) => 0,
-        // @ts-ignore
-        sensing_current: (util) => 0,
-        // @ts-ignore
-        sensing_dayssince2000: (util, datetype) => 0,
-        // @ts-ignore
-        sensing_distanceto: (util, sprite) => 0,
-        // @ts-ignore
-        sensing_colorIsTouchingColor: (util, colour1, colour2) => 0,
-        // @ts-ignore
-        sensing_touchingcolor: (util, color) => 0,
-        // @ts-ignore
-        sensing_touchingobject: (util, sprite) => 0,
-        // @ts-ignore
-        sensing_keypressed: (util, key) => 0,
-        // @ts-ignore
-        sensing_ask: (util) => 0,
-        // @ts-ignore
-        sensing_answer: (util) => 0,
 
-        //Data
-        data_setvar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, '').value = val),
-        // @ts-ignore
-        data_getvar: (util, name) => _getVarObjectFromName(Cast.toString(name), '').value,
-        // @ts-ignore
-        data_makevar: (util, name) => 0,
-        // @ts-ignore
-        data_deletevar: (util, name) => 0,
-        // @ts-ignore
-        data_changevar: (util, name, val) => 0,
-        // @ts-ignore
-        data_showvar: (util, name) => 0,
-        // @ts-ignore
-        data_hidevar: (util, name) => 0,
-        // @ts-ignore
-        data_setlist: (util, name, list) => 0,
-        // @ts-ignore
-        data_getlist: (util, name) => 0,
-        // @ts-ignore
-        data_addtolist: (util, name, value, pos) => 0,
-        // @ts-ignore
-        data_removefromlist: (util, name, pos) => 0,
-        // @ts-ignore
-        data_clearlist: (util, name) => 0,
-        // @ts-ignore
-        data_replacelistitem: (util, name, val, pos) => 0,
-        // @ts-ignore
-        data_listitem: (util, name, pos) => 0,
-        // @ts-ignore
-        data_listitemnum: (util, name, item) => 0,
-        // @ts-ignore
-        data_makelist: (util, name) => 0,
-        // @ts-ignore
-        data_deletelist: (util, name) => 0,
-        // @ts-ignore
-        data_getvars: (util) => 0,
-        // @ts-ignore
-        data_getlists: (util) => 0,
-        // @ts-ignore
-        data_listlength: (util, name) => 0,
-      };
+        sensing_timer: () => runtime.ioDevices.clock.projectTimer(),
+        sensing_resettimer: () => runtime.ioDevices.clock.resetProjectTimer(),
+        sensing_username: () => runtime.ioDevices.userData.getUsername() || '',
+        sensing_current: (util, type) => runtime.ext_scratch3_sensing._getCurrent(Cast.toString(type)),
+        sensing_dayssince2000: () => {
+          const msPerDay = 1000 * 60 * 60 * 24;
+          return (Date.now() - new Date('2000-01-01').getTime()) / msPerDay;
+        },
+        sensing_distanceto: (util, spriteName) => {
+          const target = runtime.getTargetForName(spriteName);
+          if (!target) return 0;
+          const dx = target.x - util.target.x;
+          const dy = target.y - util.target.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        },
+        sensing_colorIsTouchingColor: (util, color1, color2) =>
+          runtime.renderer.colorTouchingColor(util.target.drawableID, color1, color2),
+        sensing_touchingcolor: (util, color) =>
+          runtime.renderer.touchingColor(util.target.drawableID, color),
+        sensing_touchingobject: (util, sprite) =>
+          runtime.ext_scratch3_sensing._isTouchingObject({TOUCHINGOBJECTMENU: sprite}, util),
+        sensing_keypressed: (util, key) =>
+          runtime.ioDevices.keyboard.isKeyPressed(key),
+        sensing_ask: (util, msg) => runtime.ext_scratch3_sensing.askAndWait({QUESTION: msg}, util),
+        sensing_answer: () => runtime.ioDevices.promptProvider.getLastAnswer(),
+
+    // Data – variable support
+    /*
+    data_setvar: (util, name, val) => {
+      const key = Cast.toString(name);
+      if (util.target.variables[key]) {
+        util.target.variables[key].value = val;
+      }
+    },
+    data_getvar: (util, name) => {
+      const key = Cast.toString(name);
+      return util.target.variables[key]?.value;
+    },
+    */
+
+    data_setvar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, false).value = val),
+    data_getvar: (util, name) => _getVarObjectFromName(Cast.toString(name), false).value,
+    data_makevar: (util, name) => runtime.emit('VARIABLE_CREATE', Cast.toString(name), 'global', false),
+    data_deletevar: (util, name) => runtime.emit('VARIABLE_DELETE', Cast.toString(name), 'global'),
+    data_changevar: (util, name, val) => {
+      const key = Cast.toString(name);
+      const variable = util.target.variables[key];
+      if (variable) variable.value += Cast.toNumber(val);
+    },
+    data_showvar: (util, name) => runtime.emit('MONITORS_SHOW', { id: Cast.toString(name) }),
+    data_hidevar: (util, name) => runtime.emit('MONITORS_HIDE', { id: Cast.toString(name) }),
+
+    // Data – list support
+    data_setlist: (util, name, list) => (_getVarObjectFromName(Cast.toString(name), util, true).value = list),
+    data_getlist: (util, name) => _getVarObjectFromName(Cast.toString(name), true).value,
+    data_addtolist: (util, name, value) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) list.value.push(value);
+    },
+    data_removefromlist: (util, name, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) {
+        const index = Cast.toNumber(pos) - 1;
+        if (index >= 0 && index < list.value.length) list.value.splice(index, 1);
+      }
+    },
+    data_clearlist: (util, name) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) list.value.length = 0;
+    },
+    data_replacelistitem: (util, name, val, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) {
+        const index = Cast.toNumber(pos) - 1;
+        if (index >= 0 && index < list.value.length) list.value[index] = val;
+      }
+    },
+    data_listitem: (util, name, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      const index = Cast.toNumber(pos) - 1;
+      return list?.value[index];
+    },
+    data_listitemnum: (util, name, item) => {
+      const list = util.target.lists[Cast.toString(name)];
+      return list ? list.value.indexOf(item) + 1 : 0;
+    },
+    data_makelist: (util, name) => runtime.emit('LIST_CREATE', Cast.toString(name), 'global', false),
+    data_deletelist: (util, name) => runtime.emit('LIST_DELETE', Cast.toString(name), 'global'),
+    data_getvars: (util) => Object.values(util.target.variables),
+    data_getlists: (util) => Object.values(util.target.lists),
+    data_listlength: (util, name) => {
+      const list = util.target.lists[Cast.toString(name)];
+      return list ? list.value.length : 0;
     }
+  };
+}
 
     initLuaCommands(util) {
       // Register all the commands for lua.
@@ -513,32 +543,22 @@ getsbfuncArgs(args, { thread }) {
       lua.global.set('MathUtil', this.MathUtil);
 
       // Category: motion
-      lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
-      
-      // These require async support:
-      //   motion_glideTo
-      //   motion_glideSecsToXY
-      // Category: looks
-      lua.global.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide')});
-      // Category: events
-      lua.global.set('events', {broadcast: ref('events_broadcast')});
-      // Category: control
-      lua.global.set('control', {wait: ref('control_wait')});
-      // Category: data
-      lua.global.set('data', {
-        set(varName, value, isList) {
-          _getVarObjectFromName(Cast.toString(varName), util, Cast.toBoolean(isList) ? 'list' : '').value = value;
-        },
-        get(varName, isList) {
-          isList = Cast.toBoolean(isList);
-          const varObject = _getVarObjectFromName(Cast.toString(varName), isList ? 'list' : '');
-          if (isList) {
-            return Array.isArray(varObject.value) ? varObject.value : [varObject.value];
-          } else {
-            return varObject.value;
-          }
-        },
-      });
+lua.global.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
+
+lua.global.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), speak: ref('looks_say'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide'), getCostume: ref('looks_getCostume'), setCostume: ref('looks_setCostume'), costume: ref('looks_getCostume'), nextCostume: ref('looks_nextCostume'), lastCostume: ref('looks_lastCostume'), getSize: ref('looks_getSize'), size: ref('looks_getSize'), setSize: ref('looks_setSize'), changeSize: ref('looks_changeSize'), setEffect: ref('looks_setEffect'), changeEffect: ref('looks_changeEffect'), effectClear: ref('looks_effectClear'), clearEffects: ref('looks_effectClear')});
+
+lua.global.set('sounds', {play: ref('sounds_play'), playSound: ref('sounds_play'), stopAll: ref('sounds_stopAll'), stop: ref('sounds_stopAll'), setVolume: ref('sounds_setVolume'), changeVolume: ref('sounds_changeVolume'), volume: ref('sounds_volume'), getVolume: ref('sounds_volume'), effect: ref('sounds_effects'), setEffect: ref('sounds_effects')});
+
+lua.global.set('events', {broadcast: ref('events_broadcast'), broadcastAndWait: ref('events_broadcastandwait'), trigger: ref('events_broadcast'), emit: ref('events_broadcast')});
+
+lua.global.set('control', {wait: ref('control_wait'), sleep: ref('control_wait'), delay: ref('control_wait'), clone: ref('control_clone'), createClone: ref('control_clone'), deleteClone: ref('control_deleteClone'), removeClone: ref('control_deleteClone')});
+
+lua.global.set('sensing', {loudness: ref('sensing_loudness'), loud: ref('sensing_loud'), isLoud: ref('sensing_loud'), mouseX: ref('sensing_mouseX'), mouseY: ref('sensing_mouseY'), mouseDown: ref('sensing_mouseDown'), timer: ref('sensing_timer'), resetTimer: ref('sensing_resettimer'), username: ref('sensing_username'), current: ref('sensing_current'), daysSince2000: ref('sensing_dayssince2000'), distanceTo: ref('sensing_distanceto'), colorTouching: ref('sensing_colorIsTouchingColor'), touchingColor: ref('sensing_touchingcolor'), touchingObject: ref('sensing_touchingobject'), keyPressed: ref('sensing_keypressed'), key: ref('sensing_keypressed'), ask: ref('sensing_ask'), answer: ref('sensing_answer')});
+
+lua.global.set('data', {setVar: ref('data_setvar'), getVar: ref('data_getvar'), changeVar: ref('data_changevar'), makeVar: ref('data_makevar'), createVar: ref('data_makevar'), deleteVar: ref('data_deletevar'), showVar: ref('data_showvar'), hideVar: ref('data_hidevar'), makeList: ref('data_makelist'), createList: ref('data_makelist'), deleteList: ref('data_deletelist'), getList: ref('data_getlist'), setList: ref('data_setlist'), add: ref('data_addtolist'), append: ref('data_addtolist'), remove: ref('data_removefromlist'), clear: ref('data_clearlist'), replace: ref('data_replacelistitem'), item: ref('data_listitem'), itemNum: ref('data_listitemnum'), length: ref('data_listlength'), size: ref('data_listlength'), getVars: ref('data_getvars'), getLists: ref('data_getlists')});
+
+
+
 
       // Custom category: Cast
       lua.global.set('Cast', Cast);
