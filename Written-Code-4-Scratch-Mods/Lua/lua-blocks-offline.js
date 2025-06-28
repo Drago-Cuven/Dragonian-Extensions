@@ -49,6 +49,7 @@
   let allowMainScript = ((runtime.extensionStorage[extId] ??= {}).allowMainScript ??= false);
   let luaMainScript = ((runtime.extensionStorage[extId] ??= {}).luaMainScript ||= '');
   let runMainScriptWhen = ((runtime.extensionStorage[extId] ??= {}).runMainScriptWhen ||= 'never');
+  let initWCSCMDS = true; // initialize scratch commands for lua
 
 
   // @ts-ignore
@@ -101,7 +102,7 @@
   async function resetLua() {
     lua.global.close();
     lua = new LuaEngine(LuaLib, {});
-    this.DO_INIT = true;
+    initWCSCMDS = true;
   }
 
   const cbfsb = runtime._convertBlockForScratchBlocks.bind(runtime);
@@ -129,7 +130,6 @@
     }
     constructor() {
       this.DEBUG = true;
-      this.DO_INIT = true;
       this._curErrorMsg = '';
       this._lastErrorMsg = '';
       this._curMainErrorMsg = '';
@@ -672,60 +672,85 @@ getsbfuncArgs(args, { thread }) {
 
     // Running, etc...
     setScratchCommandsEnabled({INIT}) {
-      this.DO_INIT = Cast.toBoolean(INIT);
+      initWCSCMDS = Cast.toBoolean(INIT);
     }
 
-    async runMainScript({ CODE }, util) {
-      console.log(CODE, util);
-      if (!canRunLUA || CODE === '') return '';
+async runMainScript({ CODE }, util) {
+  
+  if (!canRunLUA || CODE === '') return '';      // skip if Lua is disabled or code is empty
 
-      if (this.DO_INIT) this.initLuaCommands(util);
-
-      try {
-          const result = await lua.doString(Cast.toString(CODE));
-          try {
-              lua.global.pop();
-          } catch (popError) {
-              console.log('prevented popstack error. ignore any aborts');
-          } // pop the return value from the Lua stack
-            this._curErrorMsg = '';
-          return result ?? '';
-      } catch (error) {
-          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
-          this._lastMainErrorMsg = message;
-          this._curMainErrorMsg = message;
-          vm.runtime.startHats('Drago0znzwLua_onMainError');
-          return '';
-      }
-    }
-
-    async runLua({ CODE }, util) {
-      if (!canRunLUA) return '';
-
-      if (this.DO_INIT) this.initLuaCommands(util);
-
-      try {
-          const result = await lua.doString(Cast.toString(CODE));
-          try {
-              lua.global.pop();
-          } catch (popError) {
-              console.log('prevented popstack error. ignore any aborts');
-          } // pop the return value from the Lua stack
-            this._curErrorMsg = '';
-          return result ?? '';
-      } catch (error) {
-          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
-          this._lastErrorMsg = message;
-          this._curErrorMsg = message;
-          util.startHats('Drago0znzwLua_onError');
-          return '';
-      }
+  if (initWCSCMDS) {                             // initialize once
+    this.initLuaCommands(util);
+    initWCSCMDS = false;
   }
+
+  try {
+    const result = await lua.doString(Cast.toString(CODE));  // execute Lua
+
+    while (lua.global.getTop() > 0)                            // drain stack
+      lua.global.pop();
+
+    this._mainRunCount = (this._mainRunCount || 0) + 1;        // tally runs
+    if (this._mainRunCount % 50 === 0)                         // every 50 runs
+      await lua.collect();                                     // force GC
+
+    this._curMainErrorMsg = '';                                // clear error
+    return result ?? '';
+  } catch (e) {
+    while (lua.global.getTop() > 0)                            // cleanup on error
+      lua.global.pop();
+
+    const msg = typeof e?.message === 'string' ? e.message : Cast.toString(e);
+    this._lastMainErrorMsg = msg;                              // record error
+    this._curMainErrorMsg = msg;
+
+    vm.runtime.startHats('Drago0znzwLua_onMainError');         // signal error
+    return '';
+  }
+
+}
+
+
+async runLua({ CODE }, util) {
+  
+  if (!canRunLUA) return '';           // skip if Lua is disabled
+
+  if (initWCSCMDS) {                  // initialize once
+    this.initLuaCommands(util);
+    initWCSCMDS = false;
+  }
+
+  try {
+    const result = await lua.doString(Cast.toString(CODE));  // execute Lua
+
+    while (lua.global.getTop() > 0)                                   // drain stack
+      lua.global.pop();
+
+    this._runCount = (this._runCount || 0) + 1;                       // tally runs
+    if (this._runCount % 50 === 0)                                    // every 50 runs
+      await lua.collect();                                            // force GC
+
+    this._curErrorMsg = '';                                           // clear error
+    return result ?? '';
+  } catch (e) {
+    while (lua.global.getTop() > 0)                                   // cleanup on error
+      lua.global.pop();
+
+    const msg = typeof e?.message === 'string' ? e.message : Cast.toString(e);
+    this._lastErrorMsg = msg;                                         // record error
+    this._curErrorMsg = msg;
+
+    util.startHats('Drago0znzwLua_onError');                           // signal error
+    return '';
+  }
+
+}
+
 }
 
 Scratch.vm.runtime.on('EXTENSION_ADDED', d => d?.id === '0znzwMoreFields' && reloadBlocks());
-runtime.on('PROJECT_START', () => { if (reloadOnStart) resetLua(); console.log(allowMainScript, canRunLUA, runMainScriptWhen == 'on start'); if (allowMainScript && canRunLUA && runMainScriptWhen == 'on start') runtime.ext_secret_dragonianlua.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["Drago0znzwLua"].luaMainScript}); });
-runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetLua());
+runtime.on('PROJECT_START', () => { if (reloadOnStart) resetLua(); if (allowMainScript && canRunLUA && runMainScriptWhen == 'on start') runtime.ext_secret_dragonianlua.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["Drago0znzwLua"].luaMainScript}); });
+runtime.on('PROJECT_STOP_ALL', () => resetLua());
 runtime.on('BEFORE_EXECUTE', () => {if (allowMainScript && canRunLUA && runMainScriptWhen == 'always') runtime.ext_secret_dragonianlua.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["Drago0znzwLua"].luaMainScript})});
   // need to find out how to get this to work without screwing up the vm.
 
