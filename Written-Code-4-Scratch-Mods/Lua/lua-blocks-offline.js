@@ -150,7 +150,7 @@
         blocks: [
           "---",
           {opcode: 'VMState', func: 'isLUAenabled', blockType: BlockType.BOOLEAN, text: 'is lua on?'},
-          {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for lua? [INIT]', arguments: {INIT: {type: ArgumentType.BOOLEAN}}},
+          {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for lua? [INIT]', arguments: {INIT: {type: ArgumentType.STRING, menu: 'boolean', defaultValue: 'true'}}},
           {opcode: 'luaVMdo', blockType: BlockType.COMMAND, text: '[ACTION] lua vm', arguments: {ACTION: {type: ArgumentType.STRING, menu: `luaVMdo`, defaultValue: `stop`}}, func: 'luaVMdo'},
           '---',
           {blockType: BlockType.LABEL, text: 'Lua Code'},
@@ -183,7 +183,7 @@
           {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
           {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last main script error message', hideFromPalette: !allowMainScript}
         ],
-        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}},
+        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}, boolean: {acceptReporters: true, items: ['true', 'false']}},
         customFieldTypes: extension.customFieldTypes,
       };
     }
