@@ -419,13 +419,9 @@ getsbfuncArgs(args, { thread }) {
 
     data_setvar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, false).value = val),
     data_getvar: (util, name) => _getVarObjectFromName(Cast.toString(name), false).value,
+    data_changevar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, false).value = Cast.toNumber(_getVarObjectFromName(Cast.toString(name), util, false).value + Cast.toNumber(val))),
     data_makevar: (util, name) => runtime.emit('VARIABLE_CREATE', Cast.toString(name), 'global', false),
     data_deletevar: (util, name) => runtime.emit('VARIABLE_DELETE', Cast.toString(name), 'global'),
-    data_changevar: (util, name, val) => {
-      const key = Cast.toString(name);
-      const variable = util.target.variables[key];
-      if (variable) variable.value += Cast.toNumber(val);
-    },
     data_showvar: (util, name) => runtime.emit('MONITORS_SHOW', { id: Cast.toString(name) }),
     data_hidevar: (util, name) => runtime.emit('MONITORS_HIDE', { id: Cast.toString(name) }),
 
