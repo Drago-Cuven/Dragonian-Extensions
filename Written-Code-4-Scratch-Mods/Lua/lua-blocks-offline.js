@@ -797,12 +797,9 @@ async runMainScript({ CODE }, util) {
   try {
     const result = await lua.doString(Cast.toString(CODE));  // execute Lua
 
-    while (lua.global.getTop() > 0)                            // drain stack
-      lua.global.pop();
-
-    this._mainRunCount = (this._mainRunCount || 0) + 1;        // tally runs
-    if (this._mainRunCount % 50 === 0)                         // every 50 runs
-      await lua.collect();                                     // force GC
+    while (lua.global.getTop() > 0){
+     lua.global.pop();    
+    }                            // drain stack                              
 
     this._curMainErrorMsg = '';                                // clear error
     return result ?? '';
@@ -833,12 +830,9 @@ async runLua({ CODE }, util) {
   try {
     const result = await lua.doString(Cast.toString(CODE));  // execute Lua
 
-    while (lua.global.getTop() > 0)                                   // drain stack
+    while (lua.global.getTop() > 0) {
       lua.global.pop();
-
-    this._runCount = (this._runCount || 0) + 1;                       // tally runs
-    if (this._runCount % 50 === 0)                                    // every 50 runs
-      await lua.collect();                                            // force GC
+    }                                  // drain stack
 
     this._curErrorMsg = '';                                           // clear error
     return result ?? '';
