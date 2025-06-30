@@ -50,7 +50,15 @@
   let luaMainScript = ((runtime.extensionStorage[extId] ??= {}).luaMainScript ||= '');
   let runMainScriptWhen = ((runtime.extensionStorage[extId] ??= {}).runMainScriptWhen ||= 'never');
   let initWCSCMDS = true; // initialize scratch commands for the written programming language. (stands for Written Code Scratch Commands)
+  const luaError = {
+  cur:  { msg: '', line: 0, linemsg: '' },
+  last: { msg: '', line: 0, linemsg: '' }
+};
 
+const luaMainError = {
+  cur:  { msg: '', line: 0, linemsg: '' },
+  last: { msg: '', line: 0, linemsg: '' }
+};
 
   // @ts-ignore
   const sbfuncArgs = Symbol('sbfuncArgs');
@@ -105,6 +113,8 @@
     initWCSCMDS = true;
   }
 
+
+
   const cbfsb = runtime._convertBlockForScratchBlocks.bind(runtime);
   runtime._convertBlockForScratchBlocks = function (blockInfo, categoryInfo) {
     const res = cbfsb(blockInfo, categoryInfo);
@@ -132,8 +142,12 @@
       this.DEBUG = true;
       this._curErrorMsg = '';
       this._lastErrorMsg = '';
+      this._curErrorLine = 0;
+      this._lastErrorLine = 0;
       this._curMainErrorMsg = '';
       this._lastMainErrorMsg = '';
+      this._curMainErrorLine = 0;
+      this._lastMainErrorLine = 0;
       //Some things may require util
       this.preservedUtil = null;
       this.setupClasses();
@@ -175,15 +189,15 @@
           {blockType: BlockType.LABEL, text: 'Lua Errors'},
           "---",
           {opcode: 'onError', blockType: BlockType.EVENT, text: 'when catching an error', isEdgeActivated: false, shouldRestartExistingThreads: true,},
-          {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
-          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
+          {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true},
+          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true},
           {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
           {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !allowMainScript},
-          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
-          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true, hideFromPalette: !allowMainScript},
           {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last main script error message', hideFromPalette: !allowMainScript}
         ],
-        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}, boolean: {acceptReporters: true, items: ['true', 'false']}},
+        menus: {luaVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}, boolean: {acceptReporters: true, items: ['true', 'false']}, errtypes: {acceptReporters: true, items: ['message', 'line', 'codeline']}},
         customFieldTypes: extension.customFieldTypes,
       };
     }
@@ -202,18 +216,17 @@
     no_op_7() {}
     onError() {}
     onMainError() {}
-    lastError() {
-      return this._lastErrorMsg || '';
-    }
-    curError() {
-      return this._curErrorMsg || '';
-    }
-    lastMainError() {
-      return this._lastMainErrorMsg || '';
-    }
-    curMainError() {
-      return this._curMainErrorMsg || '';
-    }
+
+    lastError     = (args) => { switch(args?.TYPE){ case 'line':     return luaError.last.line; case 'codeline': return luaError.last.linemsg; } return luaError.last.msg; };
+    
+    curError      = (args) => { switch(args?.TYPE){ case 'line':     return luaError.cur.line;  case 'codeline': return luaError.cur.linemsg; } return luaError.cur.msg; };
+
+    lastMainError = (args) => { switch(args?.TYPE){ case 'line':     return luaMainError.last.line; case 'codeline': return luaMainError.last.linemsg; } return luaMainError.last.msg; };
+    
+    curMainError  = (args) => { switch(args?.TYPE){ case 'line':     return luaMainError.cur.line;  case 'codeline': return luaMainError.cur.linemsg; } return luaMainError.cur.msg; };
+
+
+
 
     _extensions() {
       // @ts-ignore
@@ -314,8 +327,18 @@ getsbfuncArgs(args, { thread }) {
       if (!Array.isArray(argsList)) return 0;
       return argsList.length;
     }
-    clearLastErrorMsg(){this._lastErrorMsg = '';}
-    clearLastMainErrorMsg(){this._lastMainErrorMsg = '';}
+    clearLastErrorMsg() {
+      luaError.last.msg     = '';
+      luaError.last.line    = 0;
+      luaError.last.linemsg = '';
+    }
+
+    clearLastMainErrorMsg() {
+      luaMainError.last.msg     = '';
+      luaMainError.last.line    = 0;
+      luaMainError.last.linemsg = '';
+    }
+
 
 
 
@@ -634,29 +657,49 @@ getsbfuncArgs(args, { thread }) {
       //Category: Looks
       lua.global.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), speak: ref('looks_say'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide'), getCostume: ref('looks_getCostume'), setCostume: ref('looks_setCostume'), costume: ref('looks_getCostume'), nextCostume: ref('looks_nextCostume'), lastCostume: ref('looks_lastCostume'), getSize: ref('looks_getSize'), size: ref('looks_getSize'), setSize: ref('looks_setSize'), changeSize: ref('looks_changeSize'), setEffect: ref('looks_setEffect'), changeEffect: ref('looks_changeEffect'), effectClear: ref('looks_effectClear'), clearEffects: ref('looks_effectClear')});
 
+    // helper: strict‐arity, ignores extras, errors on too few/invalid
+    function wrapMathFn(fn) {
+      const arity = fn.length;
+      return (...args) => {
+        if (args.length < arity) {
+          throw new Error(`Expected at least ${arity} arguments, got ${args.length}`);
+        }
+        const safe = args.slice(0, arity);
+        safe.forEach((v, i) => {
+          if (typeof v !== "number" || Number.isNaN(v)) {
+            throw new Error(`Argument ${i+1} must be a valid number`);
+          }
+        });
+        return fn(...safe);
+      };
+    }
+
       const luaMath = lua.global.get('math');
 
       Object.assign(luaMath, {
-        e: Math.E,
-        log2: Math.log2,
-        expm1: Math.expm1,
-        log1p: Math.log1p,
-        cbrt: Math.cbrt,
-        hypot: Math.hypot,
-        sign: Math.sign,
-        trunc: Math.trunc,
-        round: Math.round,
-        clz32: Math.clz32,
-        fround: Math.fround,
-        imul: Math.imul
+        e:     Math.E,
+        log2:  wrapMathFn(Math.log2),
+        expm1: wrapMathFn(Math.expm1),
+        log1p: wrapMathFn(Math.log1p),
+        cbrt:  wrapMathFn(Math.cbrt),
+        hypot: wrapMathFn(Math.hypot),
+        sign:  wrapMathFn(Math.sign),
+        trunc: wrapMathFn(Math.trunc),
+        round: wrapMathFn(Math.round),
+        clz32: wrapMathFn(Math.clz32),
+        fround:wrapMathFn(Math.fround),
+        imul:  wrapMathFn(Math.imul)
       });
 
       lua.global.set('math', luaMath);
+
+
 
       lua.global.set('os', {time:()=>Math.floor(Date.now()/1000),date:(f,t)=>{const d=new Date((t||Math.floor(Date.now()/1000))*1000);return f==='*t'?{year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),min:d.getMinutes(),sec:d.getSeconds(),wday:d.getDay()+1,yday:Math.floor((d-new Date(d.getFullYear(),0,0))/86400000),isdst:0}:d.toISOString()},difftime:(t1,t2)=>t1-t2,clock:(()=>{const s=performance.now();return()=> (performance.now()-s)/1000})()});
 
       // Custom category: Cast
       lua.global.set('Cast', Cast);
+
 
       // Custom category: JS
       lua.global.set('JS', {
@@ -785,70 +828,82 @@ getsbfuncArgs(args, { thread }) {
       initWCSCMDS = Cast.toBoolean(INIT);
     }
 
-async runMainScript({ CODE }, util) {
-  
-  if (!canRunLUA || CODE === '') return '';      // skip if Lua is disabled or code is empty
+    async runMainScript({ CODE }, util) {
+      if (!canRunLUA || CODE === '') return '';
+      if (initWCSCMDS) {
+        this.initLuaCommands(util);
+        initWCSCMDS = false;
+      }
+      let result;
+      try {
+        result = await lua.doString(Cast.toString(CODE));
+      } catch (err) {
+        const msg   = err instanceof Error ? err.message : Cast.toString(err);
+        const match = msg.match(/\[string.*?\]:(\d+)/);
+        const line  = match ? parseInt(match[1], 10) : -1;
+        let linemsg = '';
+        if (line > 0) {
+          const lines = CODE.split(/\r?\n/);
+          linemsg = lines[line - 1] || '';
+        }
+        luaMainError.cur  = { msg, line, linemsg };
+        luaMainError.last = { ...luaMainError.cur };
+        while (lua.global.getTop() > 0) lua.global.pop();
+        vm.runtime.startHats('Drago0znzwLua_onMainError');
+        return '';
+      }
+      while (lua.global.getTop() > 0) lua.global.pop();
+      if (typeof result === 'function') {
+        const msg = `Invalid return: received a function value instead of a result → ${Cast.toString(result)}`;
+        luaMainError.cur  = { msg, line: -1, linemsg: '' };
+        luaMainError.last = { ...luaMainError.cur };
+        vm.runtime.startHats('Drago0znzwLua_onMainError');
+        return '';
+      }
+      luaMainError.cur = { msg: '', line: 0, linemsg: '' };
+      return result ?? '';
+    }
 
-  if (initWCSCMDS) {                             // initialize once
-    this.initLuaCommands(util);
-    initWCSCMDS = false;
-  }
-
-  try {
-    const result = await lua.doString(Cast.toString(CODE));  // execute Lua
-
-    while (lua.global.getTop() > 0){
-     lua.global.pop();    
-    }                            // drain stack                              
-
-    this._curMainErrorMsg = '';                                // clear error
-    return result ?? '';
-  } catch (e) {
-    while (lua.global.getTop() > 0)                            // cleanup on error
-      lua.global.pop();
-
-    const msg = typeof e?.message === 'string' ? e.message : Cast.toString(e);
-    this._lastMainErrorMsg = msg;                              // record error
-    this._curMainErrorMsg = msg;
-
-    vm.runtime.startHats('Drago0znzwLua_onMainError');         // signal error
-    return '';
-  }
-
-}
 
 
-async runLua({ CODE }, util) {
-  
-  if (!canRunLUA) return '';           // skip if Lua is disabled
 
-  if (initWCSCMDS) {                  // initialize once
-    this.initLuaCommands(util);
-    initWCSCMDS = false;
-  }
 
-  try {
-    const result = await lua.doString(Cast.toString(CODE));  // execute Lua
+    async runLua({ CODE }, util) {
+      if (!canRunLUA) return '';
+      if (initWCSCMDS) {
+        this.initLuaCommands(util);
+        initWCSCMDS = false;
+      }
+      let result;
+      try {
+        result = await lua.doString(Cast.toString(CODE));
+      } catch (err) {
+        const msg   = err instanceof Error ? err.message : Cast.toString(err);
+        const match = msg.match(/\[string.*?\]:(\d+)/);
+        const line  = match ? parseInt(match[1], 10) : -1;
+        let linemsg = '';
+        if (line > 0) {
+          const lines = CODE.split(/\r?\n/);
+          linemsg = lines[line - 1] || '';
+        }
+        luaError.cur  = { msg, line, linemsg };
+        luaError.last = { ...luaError.cur };
+        while (lua.global.getTop() > 0) lua.global.pop();
+        util.startHats('Drago0znzwLua_onError');
+        return '';
+      }
+      while (lua.global.getTop() > 0) lua.global.pop();
+      if (typeof result === 'function') {
+        const msg = `Invalid return: received a function value instead of a result → ${Cast.toString(result)}`;
+        luaError.cur  = { msg, line: -1, linemsg: '' };
+        luaError.last = { ...luaError.cur };
+        util.startHats('Drago0znzwLua_onError');
+        return '';
+      }
+      luaError.cur = { msg: '', line: 0, linemsg: '' };
+      return result ?? '';
+    }
 
-    while (lua.global.getTop() > 0) {
-      lua.global.pop();
-    }                                  // drain stack
-
-    this._curErrorMsg = '';                                           // clear error
-    return result ?? '';
-  } catch (e) {
-    while (lua.global.getTop() > 0)                                   // cleanup on error
-      lua.global.pop();
-
-    const msg = typeof e?.message === 'string' ? e.message : Cast.toString(e);
-    this._lastErrorMsg = msg;                                         // record error
-    this._curErrorMsg = msg;
-
-    util.startHats('Drago0znzwLua_onError');                           // signal error
-    return '';
-  }
-
-}
 
 }
 
