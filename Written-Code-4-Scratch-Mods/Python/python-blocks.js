@@ -1,7 +1,7 @@
 // @ts-no-check
 
 /**!
- * Drago0znzwPython
+ * DragoPython
  * @version 1.0
  * @copyright MIT & LGPLv3 License
  * @comment Main development by Drago Cuven
@@ -17,7 +17,7 @@
 
   const menuIconURI = "data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHdpZHRoPSIxMTEuMTYxMzUiIGhlaWdodD0iMTEyLjM4OSIgdmlld0JveD0iMCwwLDExMS4xNjEzNSwxMTIuMzg5Ij48ZGVmcz48bGluZWFyR3JhZGllbnQgeDE9IjE4NC40MTkzMiIgeTE9IjEyMy44MDU1IiB4Mj0iMjQ1Ljc0NTQ3IiB5Mj0iMTc3LjA3NzgiIGdyYWRpZW50VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBpZD0iY29sb3ItMSI+PHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjNWE5ZmQ0Ii8+PHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzA2OTk4Ii8+PC9saW5lYXJHcmFkaWVudD48bGluZWFyR3JhZGllbnQgeDE9IjI1NC4zNTAwMiIgeTE9IjIyMS4zNTM1NCIgeDI9IjIzMi40NTA0OCIgeTI9IjE5MC4wNzAzNCIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGlkPSJjb2xvci0yIj48c3RvcCBvZmZzZXQ9IjAiIHN0b3AtY29sb3I9IiNmZmQ0M2IiLz48c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNmZmU4NzMiLz48L2xpbmVhckdyYWRpZW50PjwvZGVmcz48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMTg0LjQxOTMyLC0xMjMuODA1NSkiPjxnIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIj48cGF0aCBkPSJNMjUzLjMwNjg2LDEyNC45MDAxN2M3LjI3NjI3LDEuMjEyNzIgMTMuNDA2MjUsNi42NzExNiAxMy40MDYyNSwxMy45Mzc1djI1LjUzMTI1YzAsNy40ODY4NCAtNS45NTEzLDEzLjYyNSAtMTMuNDA2MjUsMTMuNjI1aC0yNi43ODEyNWMtOS4wOTI4NiwwIC0xNi43NSw3LjgwNjM1IC0xNi43NSwxNi42NTYyNXYxMi4yNWgtOS4yMTg3NWMtNy43OTI0NiwwIC0xMi4zNDQwNywtNS42NTU5IC0xNC4yNSwtMTMuNTkzNzVjLTIuNTcxMDIsLTEwLjY2Mzk4IC0yLjQ2MTgyLC0xNy4wMzcwMyAwLC0yNy4yNWMyLjEzNDI0LC04LjkxMDAzIDguOTU3NTQsLTEzLjU5Mzc1IDE2Ljc1LC0xMy41OTM3NWgxMC4wNjI1aDI2LjgxMjV2LTMuNDA2MjVoLTI2LjgxMjV2LTEwLjIxODc1YzAsLTcuNzM3NCAyLjA2MDAzLC0xMS45MzMgMTMuNDA2MjUsLTEzLjkzNzVjMy44NTE1NiwtMC42ODE1MyA4LjIyODg1LC0xLjA3MjQ1IDEyLjgxMjUsLTEuMDkzNzVjNC41ODM2NSwtMC4wMjEzIDkuMzYyNzYsMC4zMjcwMiAxMy45Njg3NSwxLjA5Mzc1ek0yMTkuODA2ODYsMTM3LjE1MDE3YzAsMi44MTYzMyAyLjI1MTc3LDUuMDkzNzUgNS4wMzEyNSw1LjA5Mzc1YzIuNzY5NTUsMCA1LjAzMTI1LC0yLjI3NzQxIDUuMDMxMjUsLTUuMDkzNzVjMCwtMi44MjYzNSAtMi4yNjE3LC01LjEyNSAtNS4wMzEyNSwtNS4xMjVjLTIuNzc5NDgsMCAtNS4wMzEyNSwyLjI5ODY1IC01LjAzMTI1LDUuMTI1eiIgZmlsbD0idXJsKCNjb2xvci0xKSIvPjxwYXRoIGQ9Ik0yODAuMTE5MzYsMTUyLjQ2MjY3YzcuODAyMzcsMCAxMS40ODA0Niw1LjgzNjMxIDEzLjQwNjI0LDEzLjU5Mzc1YzIuNjgwMjIsMTAuNzc0MjIgMi43OTkzMywxOC44NTExMSAwLDI3LjI1Yy0yLjcwOTk5LDguMTU4MzQgLTUuNjEzNzgsMTMuNTkzNzUgLTEzLjQwNjI0LDEzLjU5Mzc1aC0xMy40MDYyNWgtMjYuNzgxMjV2My40MDYyNWgyNi43ODEyNXYxMC4yMTg3NWMwLDcuNzM3MzkgLTYuNjU2MDksMTEuNjcwNjEgLTEzLjQwNjI1LDEzLjYyNWMtMTAuMTU1MDEsMi45NDY2MyAtMTguMjkzOTIsMi40OTU2MSAtMjYuNzgxMjUsMGMtNy4wODc2NiwtMi4wODQ2OCAtMTMuNDA2MjUsLTYuMzU4NjYgLTEzLjQwNjI1LC0xMy42MjV2LTI1LjUzMTI1YzAsLTcuMzQ2NTIgNi4wNzA0MiwtMTMuNjI1IDEzLjQwNjI1LC0xMy42MjVoMjYuNzgxMjVjOC45MjQxMSwwIDE2Ljc1LC03Ljc2OTI1IDE2Ljc1LC0xN3YtMTEuOTA2MjV6TTI0OS45NjMxMSwyMjIuMjEyNjZjMCwyLjgyNjM1IDIuMjYxNyw1LjEyNSA1LjAzMTI1LDUuMTI1YzIuNzc5NDgsMCA1LjAzMTI1LC0yLjI5ODY1IDUuMDMxMjUsLTUuMTI1YzAsLTIuODE2MzMgLTIuMjUxNzcsLTUuMDkzNzQgLTUuMDMxMjUsLTUuMDkzNzVjLTIuNzY5NTUsMCAtNS4wMzEyNSwyLjI3NzQyIC01LjAzMTI1LDUuMDkzNzV6IiBmaWxsPSJ1cmwoI2NvbG9yLTIpIi8+PC9nPjwvZz48L3N2Zz48IS0tcm90YXRpb25DZW50ZXI6NTUuNTgwNjc2OTYyOTY2Mzg6NTYuMTk0NTAxMTE0NTE3MjEtLT4=";
 
-  const extId = 'Drago0znzwPython';
+  const extId = 'DragoPython';
   const {Cast, BlockType, ArgumentType, vm} = Scratch;
   const {runtime} = vm;
   const Thread = (
@@ -26,6 +26,7 @@
     // TurboWarp and forks
     vm.exports.i_will_not_ask_for_help_when_these_break().Thread
   );
+  const soundCategory = runtime.ext_scratch3_sound;
 
   function reloadBlocks(){Scratch.vm.extensionManager.refreshBlocks()}
 
@@ -37,10 +38,23 @@
   //       and prevent global leakage
   // just use the dataurl when the extension is finished
   // @ts-ignore I know it exists so shut it TS
+  
   await import('https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js');
   let python = await loadPyodide();
-  let canRunPYTHON = true; // <- this should probably be false initially // but then people will complain about it not working
+  let canRunPY = true; // <- this should probably be false initially, but then people will complain about it not working
+  let allowMainScript = ((runtime.extensionStorage[extId] ??= {}).allowMainScript ??= false);
+  let pythonMainScript = ((runtime.extensionStorage[extId] ??= {}).pythonMainScript ||= '');
+  let runMainScriptWhen = ((runtime.extensionStorage[extId] ??= {}).runMainScriptWhen ||= 'never');
+  let initWCSCMDS = true; // initialize scratch commands for the written programming language. (stands for Written Code Scratch Commands)
+  const pythonError = {
+  cur:  { msg: '', line: 0, linemsg: '' },
+  last: { msg: '', line: 0, linemsg: '' }
+};
 
+const pythonMainError = {
+  cur:  { msg: '', line: 0, linemsg: '' },
+  last: { msg: '', line: 0, linemsg: '' }
+};
 
   // @ts-ignore
   const sbfuncArgs = Symbol('sbfuncArgs');
@@ -90,8 +104,11 @@
   // @ts-ignore
   let reloadOnStart = true; // <- this is a variable to make sure the python engine is reset on flag click
   async function resetPython() {
-    python = loadPyodide();
+    python = await loadPyodide();
+    initWCSCMDS = true;
   }
+
+
 
   const cbfsb = runtime._convertBlockForScratchBlocks.bind(runtime);
   runtime._convertBlockForScratchBlocks = function (blockInfo, categoryInfo) {
@@ -118,22 +135,17 @@
     }
     constructor() {
       this.DEBUG = true;
-      this.DO_INIT = true;
       this._curErrorMsg = '';
       this._lastErrorMsg = '';
+      this._curErrorLine = 0;
+      this._lastErrorLine = 0;
       this._curMainErrorMsg = '';
       this._lastMainErrorMsg = '';
-      this.allowMainScript = ((this.runtime = runtime).extensionStorage[extId] ??= {}).allowMainScript ?? false;
-      //this.pythonMainScript = ((this.runtime = runtime).extensionStorage[extId] ??= {}).pythonMainScript || '';
-      //this.runMainScriptWhen = ((this.runtime = runtime).extensionStorage[extId] ??= {}).runMainScriptWhen || 'never';
-      // Some things may require util
+      this._curMainErrorLine = 0;
+      this._lastMainErrorLine = 0;
+      //Some things may require util
       this.preservedUtil = null;
       this.setupClasses();
-      runtime.on('PROJECT_START', () => { if (reloadOnStart) resetPython(); if (this.allowMainScript && this.runMainScriptWhen === 'on start') this.runMainScript(Cast.toString(this.pythonMainScript), util); });
-      runtime.on('PROJECT_STOP_ALL', () => reloadOnStart && resetPython());
-      runtime.on('BEFORE_EXECUTE', () => this.allowMainScript && this.runMainScriptWhen === 'always' && this.runMainScript(this.pythonMainScript));
-
-
     }
     getInfo() {
       const MoreFields = extension.MoreFields;
@@ -145,49 +157,49 @@
         color3: '#646464', 
         menuIconURI,
         blocks: [
-          {blockType: BlockType.LABEL, text: 'VM'},
           "---",
-          {opcode: 'VMState', func: 'isPYTHONenabled', blockType: BlockType.BOOLEAN, text: 'is python on?'},
-          {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for python? [INIT]', arguments: {INIT: {type: ArgumentType.BOOLEAN}}},
+          {opcode: 'VMState', func: 'isPYenabled', blockType: BlockType.BOOLEAN, text: 'is python on?'},
+          {opcode: 'toggleInit', func: 'setScratchCommandsEnabled', blockType: BlockType.COMMAND, text: 'enable scratch commands for python? [INIT]', arguments: {INIT: {type: ArgumentType.STRING, menu: 'boolean', defaultValue: 'true'}}},
           {opcode: 'pythonVMdo', blockType: BlockType.COMMAND, text: '[ACTION] python vm', arguments: {ACTION: {type: ArgumentType.STRING, menu: `pythonVMdo`, defaultValue: `stop`}}, func: 'pythonVMdo'},
           '---',
           {blockType: BlockType.LABEL, text: 'Python Code'},
           "---",
-          {blockType: BlockType.BUTTON, func: 'mainScriptToggle', text: this.allowMainScript ? "Disable Main Script": 'Enable Main Script', hideFromPalette: true},
-          {opcode: 'runMainScriptWhen', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'always', menu: 'RMSW'}}, func: 'runMainScriptWhen', hideFromPalette: !this.allowMainScript},
-          {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !this.allowMainScript},
-          {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !this.allowMainScript},
-          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: '# data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", False) \nprint(data.get("my variable", False))'}}, func: 'runPython'},
-          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: '# data.set("variable", "value", is a list?) \ndata.set("my variable", "It works!", False) \nprint(data.get("my variable", False))'}}, func: 'runPython', outputShape: 3},
+          {blockType: BlockType.BUTTON, func: 'mainScriptToggle', text: allowMainScript ? "Disable Main Script": 'Enable Main Script', hideFromPalette: false},
+          {opcode: 'runMainScriptOn', blockType: BlockType.COMMAND, text: 'run main script [RMSW]', arguments: {RMSW: {type: ArgumentType.STRING, defaultValue: 'never', menu: 'RMSW'}}, func: 'runMainScriptOn', hideFromPalette: !allowMainScript},
+          {opcode: 'setMainScript', blockType: BlockType.COMMAND, text: 'set main script to [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: 'print "hello world"'}}, func: 'setMainScript', hideFromPalette: !allowMainScript},
+          {opcode: 'getMainScript', blockType: BlockType.REPORTER, text: 'main script', func: 'getMainScript', outputShape: 3, hideFromPalette: !allowMainScript},
+          {opcode: 'no_op_0', blockType: BlockType.COMMAND, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `data.setVar("my variable", "Running in Python")`}}, func: 'runPython', filter: [Scratch.TargetType.SPRITE]},
+          {opcode: 'no_op_1', blockType: BlockType.REPORTER, text: 'run python [CODE]', arguments: {CODE: {type: MoreFields ? 'TextareaInputInline' : ArgumentType.STRING, defaultValue: `data.setVar("my variable", "Running in Python")`}}, func: 'runPython', outputShape: 3, filter: [Scratch.TargetType.SPRITE]},
+          "---",
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: Scratch.extensions.isPenguinmod ? 5 : 3, blockShape: Scratch.extensions.isPenguinmod ? 5 : 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           '---',
-          {blockType: BlockType.LABEL, text: 'Python Bridge'},
+          {blockType: BlockType.LABEL, text: 'Bridging'},
           "---",
           {opcode: 'linkedFunctionCallback', blockType: BlockType.EVENT, text: 'when sbfunc() is called', isEdgeActivated: false, shouldRestartExistingThreads: true},
           {opcode: 'linkedFunctionCallbackReturn', blockType: BlockType.COMMAND, text: 'return [DATA]', arguments: {DATA: {type: ArgumentType.STRING}}, isTerminal: true},
-          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'pure', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, outputShape: 3, func: 'getsbfuncArgs'},
+          {opcode: 'no_op_5', blockType: Scratch.BlockType.REPORTER, text: '[TYPE] arguments', arguments: {TYPE: {type: ArgumentType.STRING, defaultValue: 'clean', menu: 'argreptypes'}}, allowDropAnywhere: true, disableMonitor: true, outputShape: 3, func: 'getsbfuncArgs'},
           {opcode: 'no_op_6', blockType: Scratch.BlockType.REPORTER, text: 'argument [NUM]', arguments: {NUM: {type: ArgumentType.NUMBER, defaultValue: 1}}, allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgsnum'},
           {opcode: 'no_op_7', blockType: Scratch.BlockType.REPORTER, text: 'argument count', allowDropAnywhere: true, disableMonitor: true, func: 'getsbfuncArgscnt'},
            '---',
           {blockType: BlockType.LABEL, text: 'Python Errors'},
           "---",
           {opcode: 'onError', blockType: BlockType.EVENT, text: 'when catching an error', isEdgeActivated: false, shouldRestartExistingThreads: true,},
-          {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error', allowDropAnywhere: true},
-          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error', allowDropAnywhere: true},
+          {opcode: 'curError', blockType: Scratch.BlockType.REPORTER, text: 'current error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true},
+          {opcode: 'lastError', blockType: Scratch.BlockType.REPORTER, text: 'last error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true},
           {opcode: 'clearLastErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message'},
-          {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error', allowDropAnywhere: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error', allowDropAnywhere: true, hideFromPalette: !this.allowMainScript},
-          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last error message', hideFromPalette: !this.allowMainScript}
+          {opcode: 'onMainError', blockType: BlockType.EVENT, text: 'when main script errors', isEdgeActivated: false, shouldRestartExistingThreads: true, hideFromPalette: !allowMainScript},
+          {opcode: 'curMainError', blockType: Scratch.BlockType.REPORTER, text: 'current main script error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'lastMainError', blockType: Scratch.BlockType.REPORTER, text: 'last main script error [TYPE]', arguments: {TYPE: {type: ArgumentType.STRING, menu: "errtypes", defaultValue: "message"}}, allowDropAnywhere: true, hideFromPalette: !allowMainScript},
+          {opcode: 'clearLastMainErrorMsg', blockType: Scratch.BlockType.COMMAND, text: 'clear last main script error message', hideFromPalette: !allowMainScript}
         ],
-        menus: {pythonVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['pure', 'stringified']}, RMSW: {acceptReporters: true, items: ['on start', 'always']}},
+        menus: {pythonVMdo: {acceptReporters: true, items: ['stop', 'start', 'reset']}, argreptypes: {acceptReporters: true, items: ['clean', 'joined', 'raw']}, RMSW: {acceptReporters: true, items: ['never', 'on start', 'always']}, boolean: {acceptReporters: true, items: ['true', 'false']}, errtypes: {acceptReporters: true, items: ['message', 'line', 'codeline']}},
         customFieldTypes: extension.customFieldTypes,
       };
     }
 
     // no-op functions ignore these and leave them blank
-    isPYTHONenabled() {
-      return canRunPYTHON;
+    isPYenabled() {
+      return canRunPY;
     }
     no_op_0() {}
     no_op_1() {}
@@ -199,18 +211,17 @@
     no_op_7() {}
     onError() {}
     onMainError() {}
-    lastError() {
-      return this._lastErrorMsg || '';
-    }
-    curError() {
-      return this._curErrorMsg || '';
-    }
-    lastMainError() {
-      return this._lastMainErrorMsg || '';
-    }
-    curMainError() {
-      return this._curMainErrorMsg || '';
-    }
+
+    lastError     = (args) => { switch(args?.TYPE){ case 'line':     return pythonError.last.line; case 'codeline': return pythonError.last.linemsg; } return pythonError.last.msg; };
+    
+    curError      = (args) => { switch(args?.TYPE){ case 'line':     return pythonError.cur.line;  case 'codeline': return pythonError.cur.linemsg; } return pythonError.cur.msg; };
+
+    lastMainError = (args) => { switch(args?.TYPE){ case 'line':     return pythonMainError.last.line; case 'codeline': return pythonMainError.last.linemsg; } return pythonMainError.last.msg; };
+    
+    curMainError  = (args) => { switch(args?.TYPE){ case 'line':     return pythonMainError.cur.line;  case 'codeline': return pythonMainError.cur.linemsg; } return pythonMainError.cur.msg; };
+
+
+
 
     _extensions() {
       // @ts-ignore
@@ -239,17 +250,15 @@
       return (v === null) ? '' : v;
     }
 
-    mainScriptToggle() { (this.allowMainScript = !(this.allowMainScript), this.runtime.extensionStorage[extId].allowMainScript = this.allowMainScript, Scratch.vm.extensionManager.refreshBlocks()); }
-    setMainScript({ CODE }) { (this.runtime.extensionStorage[extId] ??= {}).pythonMainScript = this.pythonMainScript = Cast.toString(CODE); }
-    getMainScript(){return Cast.toString(this.pythonMainScript);}
-    runMainScriptWhen(args){
-
-    }
+    mainScriptToggle() { (allowMainScript = !(allowMainScript), runtime.extensionStorage[extId].allowMainScript = allowMainScript, Scratch.vm.extensionManager.refreshBlocks()); }
+    setMainScript({ CODE }) { (runtime.extensionStorage[extId] ??= {}).pythonMainScript = pythonMainScript = Cast.toString(CODE); }
+    getMainScript(){return Cast.toString(pythonMainScript);}
+    runMainScriptOn(args){(runMainScriptWhen = args.RMSW, runtime.extensionStorage[extId].runMainScriptWhen = runMainScriptWhen)}
 
     linkedFunctionCallback(){}
     
     linkedFunctionCallbackReturn(args, { thread }) {
-      // Make sure to do this first otherwise the default return value may be returned. //what's "this"
+      // Make sure to do this first otherwise the default return value may be returned.
       // this fixes an edge case where there is only 1 thread.      
       // Don't cast the return value as we don't know what it can be :3
       if (thread[sbfuncwatcher]) thread[sbfuncwatcher](args.DATA);
@@ -268,30 +277,42 @@
       switch (args.ACTION) {
         case 'stop':
           python = null;
-          canRunPYTHON = false;
+          canRunPY = false;
           break;
         case 'start':
-          if (!canRunPYTHON) {
+          if (!canRunPY) {
             await resetPython();
-            canRunPYTHON = true;
+            canRunPY = true;
           }
           break;
         default:
-          canRunPYTHON = false;
-          python = null;
+          canRunPY = false;
           await resetPython();
-          canRunPYTHON = true;
+          canRunPY = true;
           break;
       }
     }
 
-    getsbfuncArgs(args, { thread }) {
-      if (!thread[sbfuncArgs]) return '';
-      if (Cast.toString(args.TYPE) == 'stringified') {
-        return thread[sbfuncArgs].map(Cast.toString);
-      }
-      return thread[sbfuncArgs];
-    }
+getsbfuncArgs(args, { thread }) {
+  if (!thread[sbfuncArgs]) return '[]';
+
+  const argArray = thread[sbfuncArgs];
+  const type = Cast.toString(args.TYPE);
+
+  if (type === 'raw') {
+    return JSON.stringify(argArray);
+  }
+
+  if (type === 'joined') {
+    return argArray.map(item => Cast.toString(item)).join(', ');
+  }
+
+    const stringifiedItems = argArray.map(item => Cast.toString(item));
+    return JSON.stringify(stringifiedItems);
+}
+
+
+
     getsbfuncArgsnum(args, { thread }) {
       if (!thread[sbfuncArgs]) return '';
       return thread[sbfuncArgs][Cast.toNumber(args.NUM) - 1] ?? ''; //first is 1 not 0
@@ -301,8 +322,18 @@
       if (!Array.isArray(argsList)) return 0;
       return argsList.length;
     }
-    clearLastErrorMsg(){this._lastErrorMsg = '';}
-    clearLastMainErrorMsg(){this._lastMainErrorMsg = '';}
+    clearLastErrorMsg() {
+      pythonError.last.msg     = '';
+      pythonError.last.line    = 0;
+      pythonError.last.linemsg = '';
+    }
+
+    clearLastMainErrorMsg() {
+      pythonMainError.last.msg     = '';
+      pythonMainError.last.line    = 0;
+      pythonMainError.last.linemsg = '';
+    }
+
 
 
 
@@ -324,112 +355,139 @@
         motion_ifOnEdgeBounce: (util) => runtime.ext_scratch3_motion._ifOnEdgeBounce.call(runtime.ext_scratch3_motion, util.target),
 
         // Looks
-        looks_say: (util, msg) => runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
+        looks_say: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
         looks_sayForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
-        looks_think: (util, msg) => runtime.emit(runtime.ext_scratch3_looks.SAY_OR_THINK, util.target, 'think', Cast.toString(msg)),
+        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.emit(runtime.ext_scratch3_looks.SAY_OR_THINK, util.target, 'think', Cast.toString(msg)),
         looks_thinkForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
         looks_show: (util) => runtime.ext_scratch3_looks.show.call(runtime.ext_scratch3_looks, null, util),
         looks_hide: (util) => runtime.ext_scratch3_looks.hide.call(runtime.ext_scratch3_looks, null, util),
-        looks_getCostume: (util, costume) => 0,
-        looks_setCostume: (util, costume) => 0,
-        looks_nextCostume: (util, costume) => 0,
-        looks_lastCostume: (util, costume) => 0,
-        looks_getSize: (util, costume) => 0,
-        looks_setSize: (util, costume) => 0,
-        looks_changeSize: (util, costume) => 0,
-        looks_setEffect: (util, costume) => 0,
-        looks_changeEffect: (util, costume) => 0,
-        looks_effectClear: (util, costume) => 0,
+        looks_getCostume: (util) => util.target.getCostume().name,
+        looks_setCostume: (util, costume) => util.target.setCostume(costume),
+        looks_nextCostume: (util) => util.target.setCostume(util.target.currentCostume + 1),
+        looks_lastCostume: (util) => util.target.setCostume(util.target.currentCostume - 1),
+        looks_getSize: (util) => util.target.size,
+        looks_setSize: (util, size) => util.target.setSize(Cast.toNumber(size)),
+        looks_changeSize: (util, size) => util.target.setSize(util.target.size + Cast.toNumber(size)),
+        looks_setEffect: (util, effect, value) => util.target.effects.set(Cast.toString(effect), Cast.toNumber(value)),
+        looks_changeEffect: (util, effect, value) => {
+          const current = util.target.effects.get(Cast.toString(effect)) || 0;
+          util.target.effects.set(Cast.toString(effect), current + Cast.toNumber(value));
+        },
+        looks_effectClear: (util) => util.target.effects.clear(),
 
         //Events
         events_broadcast: (util, msg) => util.startHats('event_whenbroadcastreceived', {BROADCAST_OPTION: msg}),
-        // @ts-ignore
-        events_broadcastandwait: (util, msg) => 0,
+        events_broadcastandwait: (util, msg) => runtime.ext_scratch3_events.broadcastAndWait({BROADCAST_OPTION: msg}, util),
 
         // Control
         // @ts-ignore
         control_wait: (_, seconds) => new Promise((resolve) => setTimeout(resolve, Cast.toNumber(seconds) * 1000)),
-        // @ts-ignore
-        control_clone: (util, spr) => 0,
-        // @ts-ignore
-        control_deleteClone: (util) => 0,
+        control_clone: (util) => runtime.ext_scratch3_control.createClone(util),
+        control_deleteClone: (util) => util.target.removeClone(),
 
         //Sensing
         // @ts-ignore
-        sensing_loudness: (util) => 0,
-        // @ts-ignore
-        sensing_loud: (util) => 0,
+        sensing_loudness: () => runtime.ioDevices.audio.getLoudness(),
+        sensing_loud: () => runtime.ioDevices.audio.getLoudness() > 10,
         sensing_mouseX: () => runtime.ioDevices.mouse._scratchX,
         sensing_mouseY: () => runtime.ioDevices.mouse._scratchY,
         // @ts-ignore
         sensing_mouseDown: (util) => runtime.ioDevices.mouse,
         // @ts-ignore
-        sensing_timer: (util) => 0,
-        // @ts-ignore
-        sensing_resettimer: (util) => 0,
-        // @ts-ignore
-        sensing_username: (util) => 0,
-        // @ts-ignore
-        sensing_current: (util) => 0,
-        // @ts-ignore
-        sensing_dayssince2000: (util, datetype) => 0,
-        // @ts-ignore
-        sensing_distanceto: (util, sprite) => 0,
-        // @ts-ignore
-        sensing_colorIsTouchingColor: (util, colour1, colour2) => 0,
-        // @ts-ignore
-        sensing_touchingcolor: (util, color) => 0,
-        // @ts-ignore
-        sensing_touchingobject: (util, sprite) => 0,
-        // @ts-ignore
-        sensing_keypressed: (util, key) => 0,
-        // @ts-ignore
-        sensing_ask: (util) => 0,
-        // @ts-ignore
-        sensing_answer: (util) => 0,
 
-        //Data
-        data_setvar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, '').value = val),
-        // @ts-ignore
-        data_getvar: (util, name) => _getVarObjectFromName(Cast.toString(name), '').value,
-        // @ts-ignore
-        data_makevar: (util, name) => 0,
-        // @ts-ignore
-        data_deletevar: (util, name) => 0,
-        // @ts-ignore
-        data_changevar: (util, name, val) => 0,
-        // @ts-ignore
-        data_showvar: (util, name) => 0,
-        // @ts-ignore
-        data_hidevar: (util, name) => 0,
-        // @ts-ignore
-        data_setlist: (util, name, list) => 0,
-        // @ts-ignore
-        data_getlist: (util, name) => 0,
-        // @ts-ignore
-        data_addtolist: (util, name, value, pos) => 0,
-        // @ts-ignore
-        data_removefromlist: (util, name, pos) => 0,
-        // @ts-ignore
-        data_clearlist: (util, name) => 0,
-        // @ts-ignore
-        data_replacelistitem: (util, name, val, pos) => 0,
-        // @ts-ignore
-        data_listitem: (util, name, pos) => 0,
-        // @ts-ignore
-        data_listitemnum: (util, name, item) => 0,
-        // @ts-ignore
-        data_makelist: (util, name) => 0,
-        // @ts-ignore
-        data_deletelist: (util, name) => 0,
-        // @ts-ignore
-        data_getvars: (util) => 0,
-        // @ts-ignore
-        data_getlists: (util) => 0,
-        // @ts-ignore
-        data_listlength: (util, name) => 0,
-      };
+        sensing_timer: () => runtime.ioDevices.clock.projectTimer(),
+        sensing_resettimer: () => runtime.ioDevices.clock.resetProjectTimer(),
+        sensing_username: () => runtime.ioDevices.userData.getUsername() || '',
+        sensing_current: (util, type) => runtime.ext_scratch3_sensing._getCurrent(Cast.toString(type)),
+        sensing_dayssince2000: () => {
+          const msPerDay = 1000 * 60 * 60 * 24;
+          return (Date.now() - new Date('2000-01-01').getTime()) / msPerDay;
+        },
+        sensing_distanceto: (util, spriteName) => {
+          const target = runtime.getTargetForName(spriteName);
+          if (!target) return 0;
+          const dx = target.x - util.target.x;
+          const dy = target.y - util.target.y;
+          return Math.sqrt(dx * dx + dy * dy);
+        },
+        sensing_colorIsTouchingColor: (util, color1, color2) =>
+          runtime.renderer.colorTouchingColor(util.target.drawableID, color1, color2),
+        sensing_touchingcolor: (util, color) =>
+          runtime.renderer.touchingColor(util.target.drawableID, color),
+        sensing_touchingobject: (util, sprite) =>
+          runtime.ext_scratch3_sensing._isTouchingObject({TOUCHINGOBJECTMENU: sprite}, util),
+        sensing_keypressed: (util, key) =>
+          runtime.ioDevices.keyboard.isKeyPressed(key),
+        sensing_ask: (util, msg) => runtime.ext_scratch3_sensing.askAndWait({QUESTION: msg}, util),
+        sensing_answer: () => runtime.ioDevices.promptProvider.getLastAnswer(),
+
+    // Data – variable support
+    /*
+    data_setvar: (util, name, val) => {
+      const key = Cast.toString(name);
+      if (util.target.variables[key]) {
+        util.target.variables[key].value = val;
+      }
+    },
+    data_getvar: (util, name) => {
+      const key = Cast.toString(name);
+      return util.target.variables[key]?.value;
+    },
+    */
+
+    data_setvar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, false).value = val),
+    data_getvar: (util, name) => _getVarObjectFromName(Cast.toString(name), false).value,
+    data_changevar: (util, name, val) => (_getVarObjectFromName(Cast.toString(name), util, false).value = Cast.toNumber(_getVarObjectFromName(Cast.toString(name), util, false).value + Cast.toNumber(val))),
+    data_makevar: (util, name) => runtime.emit('VARIABLE_CREATE', Cast.toString(name), 'global', false),
+    data_deletevar: (util, name) => runtime.emit('VARIABLE_DELETE', Cast.toString(name), 'global'),
+    data_showvar: (util, name) => runtime.emit('MONITORS_SHOW', { id: Cast.toString(name) }),
+    data_hidevar: (util, name) => runtime.emit('MONITORS_HIDE', { id: Cast.toString(name) }),
+
+    // Data – list support
+    data_setlist: (util, name, list) => (_getVarObjectFromName(Cast.toString(name), util, true).value = list),
+    data_getlist: (util, name) => _getVarObjectFromName(Cast.toString(name), true).value,
+    data_addtolist: (util, name, value) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) list.value.push(value);
+    },
+    data_removefromlist: (util, name, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) {
+        const index = Cast.toNumber(pos) - 1;
+        if (index >= 0 && index < list.value.length) list.value.splice(index, 1);
+      }
+    },
+    data_clearlist: (util, name) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) list.value.length = 0;
+    },
+    data_replacelistitem: (util, name, val, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      if (list) {
+        const index = Cast.toNumber(pos) - 1;
+        if (index >= 0 && index < list.value.length) list.value[index] = val;
+      }
+    },
+    data_listitem: (util, name, pos) => {
+      const list = util.target.lists[Cast.toString(name)];
+      const index = Cast.toNumber(pos) - 1;
+      return Cast.toString(list?.value[index]);
+    },
+    data_listitemnum: (util, name, item) => {
+      const list = util.target.lists[Cast.toString(name)];
+      return list ? list.value.indexOf(item) + 1 : 0;
+    },
+    data_makelist: (util, name) => runtime.emit('LIST_CREATE', Cast.toString(name), 'global', false),
+    data_deletelist: (util, name) => runtime.emit('LIST_DELETE', Cast.toString(name), 'global'),
+    data_getvars: (util) => Cast.toString(Object.values(util.target.variables)),
+    data_getlists: (util) => Cast.toString(Object.values(util.target.lists)),
+    data_listlength: (util, name) => {
+      const list = util.target.lists[Cast.toString(name)];
+      return list ? list.value.length : 0;
     }
+  };
+}
+
 
     initPythonCommands(util) {
       // Register all the commands for python.
@@ -500,40 +558,120 @@
       // Custom category: MathUtil
       python.globals.set('MathUtil', this.MathUtil);
 
+      // Category: sounds
+      python.globals.set('sounds', {
+        play: ref('sounds_play'),
+        playSound: ref('sounds_play'),
+        stopAll: ref('sounds_stopAll'),
+        stop: ref('sounds_stopAll'),
+        setVolume: ref('sounds_setVolume'),
+        changeVolume: ref('sounds_changeVolume'),
+        volume: ref('sounds_volume'),
+        getVolume: ref('sounds_volume'),
+        effect: ref('sounds_effects'),
+        setEffect: ref('sounds_effects')
+      });
+
+      // Category: events
+      python.globals.set('events', {
+        broadcast: ref('events_broadcast'),
+        broadcastAndWait: ref('events_broadcastandwait'),
+        trigger: ref('events_broadcast'),
+        emit: ref('events_broadcast')
+      });
+
+      // Category: control
+      python.globals.set('control', {
+        wait: ref('control_wait'),
+        sleep: ref('control_wait'),
+        delay: ref('control_wait'),
+        clone: ref('control_clone'),
+        createClone: ref('control_clone'),
+        deleteClone: ref('control_deleteClone'),
+        removeClone: ref('control_deleteClone')
+      });
+
+      // Category: sensing
+      python.globals.set('sensing', {
+        loudness: ref('sensing_loudness'),
+        loud: ref('sensing_loud'),
+        isLoud: ref('sensing_loud'),
+        mouseX: ref('sensing_mouseX'),
+        mouseY: ref('sensing_mouseY'),
+        mouseDown: ref('sensing_mouseDown'),
+        timer: ref('sensing_timer'),
+        resetTimer: ref('sensing_resettimer'),
+        username: ref('sensing_username'),
+        current: ref('sensing_current'),
+        daysSince2000: ref('sensing_dayssince2000'),
+        distanceTo: ref('sensing_distanceto'),
+        colorTouching: ref('sensing_colorIsTouchingColor'),
+        touchingColor: ref('sensing_touchingcolor'),
+        touchingObject: ref('sensing_touchingobject'),
+        keyPressed: ref('sensing_keypressed'),
+        key: ref('sensing_keypressed'),
+        ask: ref('sensing_ask'),
+        answer: ref('sensing_answer')
+      });
+
+      // Category: data
+      python.globals.set('data', {
+        setVar: ref('data_setvar'),
+        getVar: ref('data_getvar'),
+        changeVar: ref('data_changevar'),
+        makeVar: ref('data_makevar'),
+        createVar: ref('data_makevar'),
+        deleteVar: ref('data_deletevar'),
+        showVar: ref('data_showvar'),
+        hideVar: ref('data_hidevar'),
+        makeList: ref('data_makelist'),
+        createList: ref('data_makelist'),
+        deleteList: ref('data_deletelist'),
+        getList: ref('data_getlist'),
+        setList: ref('data_setlist'),
+        addToList: ref('data_addtolist'),
+        push: ref('data_addtolist'),
+        append: ref('data_addtolist'),
+        remove: ref('data_removefromlist'),
+        removeFromList: ref('data_removefromlist'),
+        pull: ref('data_removefromlist'),
+        clear: ref('data_clearlist'),
+        replace: ref('data_replacelistitem'),
+        item: ref('data_listitem'),
+        getFromList: ref('data_listitem'),
+        itemNum: ref('data_listitemnum'),
+        length: ref('data_listlength'),
+        size: ref('data_listlength'),
+        getVars: ref('data_getvars'),
+        getLists: ref('data_getlists')
+      });
+
       // Category: motion
       python.globals.set('motion', {move: ref('motion_moveSteps'), moveSteps: ref('motion_moveSteps'), turn: ref('motion_turn'), rotate: ref('motion_turn'), goTo: ref('motion_goTo'), setPos: ref('motion_goTo'), set: ref('motion_goTo'), XY: ref('motion_goTo'), changePos: ref('motion_changePos'), change: ref('motion_changePos'), transform: ref('motion_changePos'), setX: ref('motion_setX'), X: ref('motion_setX'), setY: ref('motion_setY'), Y: ref('motion_setY'), changeX: ref('motion_changeX'), changeY: ref('motion_changeY'), pointInDir: ref('motion_pointInDir'), point: ref('motion_pointInDir'), setRotationStyle: ref('motion_setRotationStyle'), RotStyle: ref('motion_setRotationStyle'), RotationStyle: ref('motion_setRotationStyle'), ifOnEdgeBounce: ref('motion_ifOnEdgeBounce')});
-      
-      // These require async support:
-      //   motion_glideTo
-      //   motion_glideSecsToXY
-      // Category: looks
-      python.globals.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide')});
-      // Category: events
-      python.globals.set('events', {broadcast: ref('events_broadcast')});
-      // Category: control
-      python.globals.set('control', {wait: ref('control_wait')});
-      // Category: data
-      /*
-      python.globals.set('data', {var: ref('data_setvar')});
-      */
 
-      python.globals.set('data', {
-        set(varName, value, isList) {
-          _getVarObjectFromName(Cast.toString(varName), util, Cast.toBoolean(isList) ? 'list' : '').value = value;
-        },
-        get(varName, isList) {
-          isList = Cast.toBoolean(isList);
-          const varObject = _getVarObjectFromName(Cast.toString(varName), isList ? 'list' : '');
-          if (isList) {
-            return Array.isArray(varObject.value) ? varObject.value : [varObject.value];
-          } else {
-            return varObject.value;
+      //Category: Looks
+      python.globals.set('looks', {say: ref('looks_say'), sayForSecs: ref('looks_sayForSecs'), speak: ref('looks_say'), think: ref('looks_think'), thinkForSecs: ref('looks_thinkForSecs'), show: ref('looks_show'), hide: ref('looks_hide'), getCostume: ref('looks_getCostume'), setCostume: ref('looks_setCostume'), costume: ref('looks_getCostume'), nextCostume: ref('looks_nextCostume'), lastCostume: ref('looks_lastCostume'), getSize: ref('looks_getSize'), size: ref('looks_getSize'), setSize: ref('looks_setSize'), changeSize: ref('looks_changeSize'), setEffect: ref('looks_setEffect'), changeEffect: ref('looks_changeEffect'), effectClear: ref('looks_effectClear'), clearEffects: ref('looks_effectClear')});
+
+    // helper: strict‐arity, ignores extras, errors on too few/invalid
+    function wrapMathFn(fn) {
+      const arity = fn.length;
+      return (...args) => {
+        if (args.length < arity) {
+          throw new Error(`Expected at least ${arity} arguments, got ${args.length}`);
+        }
+        const safe = args.slice(0, arity);
+        safe.forEach((v, i) => {
+          if (typeof v !== "number" || Number.isNaN(v)) {
+            throw new Error(`Argument ${i+1} must be a valid number`);
           }
-        },
-      });
+        });
+        return fn(...safe);
+      };
+    }
 
       // Custom category: Cast
       python.globals.set('Cast', Cast);
+
 
       // Custom category: JS
       python.globals.set('JS', {
@@ -603,7 +741,7 @@
             // we dont have access to the REAL blockJSON
             {},
           );
-          if (this.DEBUG) console.trace(`runBlock_PYTHON | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
+          if (this.DEBUG) console.trace(`runBlock_PY | Ran ${EXT}_${OPCODE} and got:\n`, formatRes(res));
           return res;
         },
         // This is just a cool novelty to show its possible :D
@@ -640,10 +778,11 @@
             delete window._pythonExtensionLoader;
           }
         },
+        
         _loadObject(object) {
           // @ts-ignore
           window._pythonExtensionLoader = object;
-          // A extension to load the PYTHON extension
+          // A extension to load the PY extension
           return this._loadHack(this._scratchLoader);
         },
       });
@@ -659,58 +798,103 @@
 
     // Running, etc...
     setScratchCommandsEnabled({INIT}) {
-      this.DO_INIT = Cast.toBoolean(INIT);
+      initWCSCMDS = Cast.toBoolean(INIT);
     }
 
     async runMainScript({ CODE }, util) {
-      if (!canRunPYTHON || CODE === '') return '';
+    if (!canRunPY || CODE === '') return '';
 
-      if (this.DO_INIT) this.initPythonCommands(util);
+    if (initWCSCMDS) {
+        this.initPythonCommands(util);
+        initWCSCMDS = false;
+    }
 
-      try {
-          const result = await python.doString(Cast.toString(CODE));
-          try {
-              python.global.pop();
-          } catch (popError) {
-              console.log('prevented popstack error. ignore any aborts');
-          } // pop the return value from the Python stack
-            this._curErrorMsg = '';
-          return result ?? '';
-      } catch (error) {
-          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
-          this._lastMainErrorMsg = message;
-          this._curMainErrorMsg = message;
-          vm.runtime.startHats('Drago0znzwPython_onMainError');
-          return '';
-      }
+    let result;
+    try {
+        result = await python.runPythonAsync(Cast.toString(CODE));
+    } catch (err) {
+        const msg = err instanceof Error ? err.message : Cast.toString(err);
+
+        // Updated to match Python-style errors
+        const match = msg.match(/<string>, line (\d+)/);
+        const line = match ? parseInt(match[1], 10) : -1;
+
+        let linemsg = '';
+        if (line > 0) {
+        const lines = CODE.split(/\r?\n/);
+        linemsg = lines[line - 1] || '';
+        }
+
+        pythonMainError.cur = { msg, line, linemsg };
+        pythonMainError.last = { ...pythonMainError.cur };
+
+        // Removed invalid python.globals.getTop()
+        vm.runtime.startHats('DragoPython_onMainError');
+        return '';
+    }
+
+    // Removed invalid python.globals.getTop()
+
+    if (typeof result === 'function') {
+        const msg = `Invalid return: received a function value instead of a result → ${Cast.toString(result)}`;
+        pythonMainError.cur = { msg, line: -1, linemsg: '' };
+        pythonMainError.last = { ...pythonMainError.cur };
+        vm.runtime.startHats('DragoPython_onMainError');
+        return '';
+    }
+
+    pythonMainError.cur = { msg: '', line: 0, linemsg: '' };
+    return result ?? '';
     }
 
     async runPython({ CODE }, util) {
-      if (!canRunPYTHON) return '';
+    if (!canRunPY) return '';
+    if (initWCSCMDS) {
+        this.initPythonCommands(util);
+        initWCSCMDS = false;
+    }
 
-      if (this.DO_INIT) this.initPythonCommands(util);
+    let result;
+    try {
+        result = await python.runPythonAsync(Cast.toString(CODE));
+    } catch (err) {
+        const msg   = err instanceof Error ? err.message : Cast.toString(err);
+        const match = msg.match(/<string>, line (\d+)/); // Python error format
+        const line  = match ? parseInt(match[1], 10) : -1;
+        let linemsg = '';
+        if (line > 0) {
+        const lines = CODE.split(/\r?\n/);
+        linemsg = lines[line - 1] || '';
+        }
+        pythonError.cur  = { msg, line, linemsg };
+        pythonError.last = { ...pythonError.cur };
 
-      try {
-          const result = await python.runPythonAsync(Cast.toString(CODE));
-          try {
-              python.global.pop();
-          } catch (popError) {
-              
-          } // pop the return value from the Python stack
-            this._curErrorMsg = '';
-          return result ?? '';
-      } catch (error) {
-          const message = typeof error?.message === 'string' ? error.message : Cast.toString(error);
-          this._lastErrorMsg = message;
-          this._curErrorMsg = message;
-          util.startHats('Drago0znzwPython_onError');
-          return '';
-      }
-  }
+        // No getTop/pop necessary
+        util.startHats('DragoPython_onError');
+        return '';
+    }
+
+    // No getTop/pop necessary
+    if (typeof result === 'function') {
+        const msg = `Invalid return: received a function value instead of a result → ${Cast.toString(result)}`;
+        pythonError.cur  = { msg, line: -1, linemsg: '' };
+        pythonError.last = { ...pythonError.cur };
+        util.startHats('DragoPython_onError');
+        return '';
+    }
+
+    pythonError.cur = { msg: '', line: 0, linemsg: '' };
+    return result ?? '';
+    }
+
+
+
 }
 
-  Scratch.vm.runtime.on('EXTENSION_ADDED',d=>d?.id==='0znzwMoreFields'&&reloadBlocks())
-  // need to find out how to get this to work without screwing up the vm.
+Scratch.vm.runtime.on('EXTENSION_ADDED', d => d?.id === '0znzwMoreFields' && reloadBlocks());
+runtime.on('PROJECT_START', () => { if (reloadOnStart) resetPython(); if (allowMainScript && canRunPY && runMainScriptWhen == 'on start') runtime.ext_secret_dragonianpython.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["DragoPython"].pythonMainScript}); });
+runtime.on('PROJECT_STOP_ALL', () => resetPython());
+runtime.on('BEFORE_EXECUTE', () => {if (allowMainScript && canRunPY && runMainScriptWhen == 'always') runtime.ext_secret_dragonianpython.runMainScript({CODE: Scratch.vm.runtime.extensionStorage["DragoPython"].pythonMainScript})});
 
   Scratch.extensions.register((runtime.ext_secret_dragonianpython = new extension()));
 })(Scratch);
