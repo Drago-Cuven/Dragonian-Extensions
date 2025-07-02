@@ -5,13 +5,15 @@
  * @comment Main development by Drago Cuven
  * Do not remove this comment.
  */
+
 (async function (Scratch) {
     'use strict';
     if (!Scratch.extensions.unsandboxed) {
         throw new Error('"Dragonian Lua" must be ran unsandboxed.');
     }
 
-    let vfs = { root: {} };
+    const { FS, PATH, PATH_FS } = await import('')
+    let ovfs = { root: {} };
     let curdir = '/';
     let lastReadFile = '';
 

@@ -1,0 +1,102 @@
+// @ts-no-check
+
+/**!
+ * Cubix Infinite
+ * @version 1.0
+ * @copyright MIT & LGPLv3 License
+ * @comment Main development by Drago Cuven and Ship
+ * Do not remove this comment
+ */
+// @ts-ignore
+(async function (Scratch) {
+  'use strict';
+  if (!Scratch.extensions.unsandboxed) {
+    throw new Error('"Cubix" must be ran unsandboxed.');
+  }
+
+  const menuIconURI = ``    
+
+  const extId = 'CubixInfinite';
+  const {Cast, BlockType, ArgumentType, vm} = Scratch;
+  const {runtime} = vm;
+
+  function reloadBlocks(){Scratch.vm.extensionManager.refreshBlocks()}
+
+  // Actual extension code
+  class extension {
+    constructor() {
+      this.DEBUG = true;
+      this._curErrorMsg = '';
+      this._lastErrorMsg = '';
+      this._curErrorLine = 0;
+      this._lastErrorLine = 0;
+      this._curMainErrorMsg = '';
+      this._lastMainErrorMsg = '';
+      this._curMainErrorLine = 0;
+      this._lastMainErrorLine = 0;
+      //Some things may require util
+      this.preservedUtil = null;
+      this.setupClasses();
+    }
+    getInfo() {
+      return {
+        id: extId,
+        name: 'Cubix',
+        color1: '#f7aa33',
+        color2: '#fbede4',
+        color3: '#2b2b2b',
+        menuIconURI,
+        blocks: [
+          "---",
+          // Window label
+          {blockType: BlockType.LABEL, text: 'Window'},
+          {opcode: 'setWindowRender', blockType: BlockType.COMMAND, text: 'set window render to [WINDOW]', arguments: {WINDOW: {type: ArgumentType.STRING, menu: 'windowstates', defaultValue: 'on'}},},
+          {opcode: 'windowState', blockType: BlockType.REPORTER, text: 'window state'},
+          {opcode: 'closeGame', blockType: BlockType.COMMAND, text: 'close game/app', isTerminal: true,},
+          "---",
+          // Players label
+          {blockType: BlockType.LABEL, text: 'Players'},
+          {opcode: 'playerCount', blockType: BlockType.REPORTER, text: 'player count'},
+          "---",
+          // Account label under Players
+          {blockType: BlockType.LABEL, text: ' Account'},
+          {opcode: 'friendCount', blockType: BlockType.REPORTER, text: 'friend count of player [PLAYER]', arguments: {PLAYER: {type: ArgumentType.NUMBER, menu: 'players', defaultValue: 1}},},
+          "---",
+          // Avatar label under Players
+          {blockType: BlockType.LABEL, text: ' Avatar'},
+          // Example: avatar name and icon
+          {opcode: 'playerAvatarName', blockType: BlockType.REPORTER, text: 'avatar name of player [PLAYER]', arguments: {PLAYER: {type: ArgumentType.NUMBER, menu: 'players', defaultValue: 1}},},
+          {opcode: 'playerAvatarIcon', blockType: BlockType.REPORTER, text: 'avatar icon of player [PLAYER]', arguments: {PLAYER: {type: ArgumentType.NUMBER, menu: 'players', defaultValue: 1}},},
+          "---",
+          // Controllers label
+          {blockType: BlockType.LABEL, text: ' Controllers'},
+          {opcode: 'controllerConnected', blockType: BlockType.BOOLEAN, text: 'controller [PLAYER] connected?', arguments: {PLAYER: {type: ArgumentType.NUMBER, menu: 'players', defaultValue: 1}},},
+          {opcode: 'controllerType', blockType: BlockType.REPORTER, text: 'controller type of player [PLAYER]', arguments: {PLAYER: {type: ArgumentType.NUMBER, menu: 'players', defaultValue: 1}},},
+          "---",
+          // Saves label
+          {blockType: BlockType.LABEL, text: 'Saves'},
+          {opcode: 'saveGame', blockType: BlockType.COMMAND, text: 'save game'},
+          {opcode: 'loadGame', blockType: BlockType.COMMAND, text: 'load game'},
+          "---",
+          // Servers label
+          {blockType: BlockType.LABEL, text: 'Servers'},
+          {opcode: 'serverStatus', blockType: BlockType.REPORTER, text: 'server status'},
+          {opcode: 'connectServer', blockType: BlockType.COMMAND, text: 'connect to server [ADDRESS]', arguments: {ADDRESS: {type: ArgumentType.STRING, defaultValue: '127.0.0.1'}},},
+          {opcode: 'disconnectServer', blockType: BlockType.COMMAND, text: 'disconnect from server'},
+        ],
+        menus: {
+          windowstates: {acceptReporters: true, items: ['on', 'off', 'static']},
+          players: {acceptReporters: true, items: [1, 2, 3, 4]},
+        },
+      };
+    }
+
+}
+
+Scratch.vm.runtime.on('EXTENSION_ADDED', () => {});
+runtime.on('PROJECT_START', () => {});
+runtime.on('PROJECT_STOP_ALL', () => {});
+runtime.on('BEFORE_EXECUTE', () => {});
+
+  Scratch.extensions.register((runtime.ext_secret_dragonianlua = new extension()));
+})(Scratch);
