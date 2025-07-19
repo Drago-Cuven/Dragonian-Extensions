@@ -360,7 +360,7 @@ getsbfuncArgs(args, { thread }) {
         // Looks
         looks_say: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
         looks_sayForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
-        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.emit(runtime.ext_scratch3_looks.SAY_OR_THINK, util.target, 'think', Cast.toString(msg)),
+        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._think.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
         looks_thinkForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
         looks_show: (util) => runtime.ext_scratch3_looks.show.call(runtime.ext_scratch3_looks, null, util),
         looks_hide: (util) => runtime.ext_scratch3_looks.hide.call(runtime.ext_scratch3_looks, null, util),
