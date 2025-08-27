@@ -23,26 +23,26 @@
   class DragoPython {
     getInfo() {
       return {
-        id: 'DragoTensor', // case-sensitive ID you requested
-        name: 'Tensor',
+        id: 'DragoPython', // case-sensitive ID you requested
+        name: 'Python',
         color1: '#ee8f1f',
         color2: '#f8c039',
         color3: '#e65b29',
         blocks: [
           {
-            opcode: 'tensorLoaded',
+            opcode: 'dothing',
             blockType: BlockType.BOOLEAN,
-            text: 'is tensor loaded?',
+            text: 'thingdo?',
             disableMonitor: false
           }
         ]
       };
     }
 
-    tensorLoaded() {
-      return Boolean(tensor && tensor.ready && !tensor.loading);
+    dothing() {
+      return true;
     }
   }
 
-  Scratch.extensions.register(new TensorBlocks());
+  Scratch.extensions.register(new DragoPython());
 })(Scratch);
