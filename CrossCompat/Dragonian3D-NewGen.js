@@ -5,6 +5,7 @@
  * License: MIT & LGPLv3 License
  * Do not remove this comment
  **/
+
 (async function (Scratch) {
   if (!Scratch.extensions.unsandboxed) {
     throw new Error(`"DragonianUSB3D" must be run unsandboxed.`);
