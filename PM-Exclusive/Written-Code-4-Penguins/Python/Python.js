@@ -17,7 +17,17 @@
   const { runtime } = vm;
   const renderer = runtime.renderer;
 
-  const pyodidePkg = await import("https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.mjs");
+const pyodidePkg = await import("https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.mjs");
+const pyodide = await pyodidePkg.loadPyodide();
+
+await pyodide.runPythonAsync(`
+def hello(name):
+    return f"hi, {name}!"
+`);
+
+pyodide.globals.set("jsVar", 123);
+console.log(pyodide.runPython("jsVar + 1"));
+
 
 
   class DragoPython {
