@@ -898,6 +898,38 @@ getsbfuncArgs(args, { thread }) {
 
       lua.global.set('math', luaMath);
 
+lua.doString(`
+  function Switch(val)
+    local S={_val=val,_cases={},_def=nil}
+    function S:case(match,fn,fall)
+      table.insert(self._cases,{match=match,fn=fn,fall=not not fall})
+      return self
+    end
+    function S:default(fn)self._def=fn;return self end
+    function S:run()
+      local v=self._val
+      for _,c in ipairs(self._cases)do
+        local ok=false
+        if type(c.match)=="function"then
+          ok=c.match(v)
+        elseif type(c.match)=="table"then
+          for _,m in ipairs(c.match)do if m==v then ok=true break end end
+        else
+          ok=(c.match==v)
+        end
+        if ok then
+          local res=c.fn(v)
+          if not c.fall then return res end
+        end
+      end
+      if self._def then return self._def(v)end
+      return nil
+    end
+    return S
+  end
+`);
+
+// `Switch` is defined directly in Lua above; no JS-side `luaswitchcase` wrapper is necessary.
 
 
       lua.global.set('os',{time:()=>Math.floor(Date.now()/1000),date:(f,t)=>{const d=new Date((t||Math.floor(Date.now()/1000))*1000);return f==='*t'?{year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),min:d.getMinutes(),sec:d.getSeconds(),wday:d.getDay()+1,yday:Math.floor((d-new Date(d.getFullYear(),0,0))/86400000),isdst:0}:d.toISOString()},difftime:(t1,t2)=>(t1||0)-(t2||0),clock:(()=>{const s=performance.now();return()=> (performance.now()-s)/1000})()});
