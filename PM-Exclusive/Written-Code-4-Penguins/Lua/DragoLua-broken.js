@@ -19,7 +19,7 @@
     'data:image/svg+xml;base64,PHN2ZyB2ZXJzaW9uPSIxLjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9Ijk0NyIgaGVpZ2h0PSI5NDciIHZpZXdCb3g9IjAgMCA5NDcgOTQ3IiB4bWw6c3BhY2U9InByZXNlcnZlIj48cGF0aCBmaWxsPSJuYXZ5IiBkPSJNODM1LjUgNDczLjZjMC0xOTkuOC0xNjIuMi0zNjItMzYyLTM2MnMtMzYyIDE2Mi4yLTM2MiAzNjIgMTYyLjIgMzYyIDM2MiAzNjIgMzYyLTE2Mi4yIDM2Mi0zNjIiLz48cGF0aCBmaWxsPSIjRkZGIiBkPSJNNzI5LjUgMzIzLjZjMC01OC41LTQ3LjUtMTA2LTEwNi0xMDZzLTEwNiA0Ny41LTEwNiAxMDYgNDcuNSAxMDYgMTA2IDEwNiAxMDYtNDcuNSAxMDYtMTA2Ii8+PHBhdGggZmlsbD0ibmF2eSIgZD0iTTk0MS41IDExMS41YzAtNTguNS00Ny41LTEwNi0xMDYtMTA2cy0xMDYgNDcuNS0xMDYgMTA2IDQ3LjUgMTA2IDEwNiAxMDYgMTA2LTQ3LjQgMTA2LTEwNiIvPjxwYXRoIGQ9Ik0yNTguMSA2MjcuOGgxMTcuM3YyNi43SDIyNy44VjQxN2gzMC4zem0yNTcuNCAyNi43di0yMy44Yy0xNiAyMi41LTMxLjkgMzEuMy01NyAzMS4zLTMzLjIgMC01NC40LTE4LjItNTQuNC00Ni42VjQ4My44aDI3djEyMC45YzAgMjAuNSAxMy43IDMzLjYgMzUuMiAzMy42IDI4LjMgMCA0Ni42LTIyLjggNDYuNi01Ny43di05Ni44aDI3djE3MC43em0yMjIuOSA0LjZjLTguOCAyLjMtMTMgMi45LTE4LjYgMi45LTE3LjYgMC0yNi4xLTcuOC0yOC0yNS4xLTE5LjIgMTcuNi0zNi41IDI1LjEtNTggMjUuMS0zNC41IDAtNTYtMTkuNS01Ni01MC41IDAtMjIuMiAxMC4xLTM3LjUgMzAtNDUuNiAxMC40LTQuMiAxNi4zLTUuNSA1NC43LTEwLjQgMjEuNS0yLjYgMjguMy03LjUgMjguMy0xOC45di03LjJjMC0xNi4zLTEzLjctMjUuNC0zOC4xLTI1LjQtMjUuNCAwLTM3LjggOS40LTQwLjEgMzAuM2gtMjcuNGMuNy0xNi45IDMuOS0yNi43IDExLjctMzUuNSAxMS40LTEyLjcgMzEuOS0xOS45IDU2LjctMTkuOSA0MiAwIDY0LjIgMTYuMyA2NC4yIDQ2LjZ2MTAwLjRjMCA4LjUgNS4yIDEzLjQgMTQuNyAxMy40IDEuNiAwIDIuOSAwIDUuOS0uN3ptLTQ3LjYtODljLTkuMSA0LjItMTUgNS41LTQzLjcgOS40LTI5IDQuMi00MS4xIDEzLjQtNDEuMSAzMS4zIDAgMTcuMyAxMi40IDI3LjQgMzMuNiAyNy40IDE2IDAgMjkuMy01LjIgNDAuNC0xNS4zIDguMS03LjUgMTAuOC0xMyAxMC44LTIyLjJ6IiBmaWxsPSIjRkZGIi8+PHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSJncmF5IiBzdHJva2Utd2lkdGg9IjEwLjg2MSIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIiBzdHJva2UtZGFzaGFycmF5PSI0MC44NDciIGQ9Ik04OTAuNiAyNjFjMzMuNSA2NS44IDUxIDEzOC42IDUxIDIxMi41IDAgMjU4LjQtMjA5LjcgNDY4LjEtNDY4LjEgNDY4LjFTNS40IDczMS45IDUuNCA0NzMuNSAyMTUuMSA1LjQgNDczLjUgNS40YzgzLjEgMCAxNjQuNiAyMi4xIDIzNi4yIDYzLjkiLz48L3N2Zz4=';
 
   const extId = 'DragoLua';
-  const {Cast, BlockType, ArgumentType, vm} = Scratch;
+  const {Cast, BlockType, BlockShape, ArgumentType, vm} = Scratch;
   const {runtime} = vm;
   const renderer = runtime.renderer;
   let isScratchBlocksReady = typeof ScratchBlocks === "object";
@@ -33,6 +33,9 @@
   const soundCategory = runtime.ext_scratch3_sound;
 
   function reloadBlocks(){Scratch.vm.extensionManager.refreshBlocks()}
+
+let extlist = Object.keys(vm.extensionManager.getExtensionURLs());
+let oldextlist = [...extlist];
 
 
   // @ts-ignore I know it exists so shut it TS
@@ -342,6 +345,7 @@ if (isScratchBlocksReady) initBlockTools();
           "---",
           {opcode: 'no_op_4', blockType: Scratch.BlockType.REPORTER, text: 'variable [VAR]', outputShape: 3, blockShape: 3, arguments: {VAR: {type: ArgumentType.STRING}}, allowDropAnywhere: true, func: 'getVar'},
           {opcode: 'setLuaVar', blockType: Scratch.BlockType.COMMAND, text: 'set variable [VAR] to [VAL]', arguments: {VAR: {type: ArgumentType.STRING}, VAL: {type: ArgumentType.STRING, defaultValue: ''}}, func: 'setVar'},
+          {opcode: 'extlist', blockType: Scratch.BlockType.REPORTER, text: 'extensions list', outputShape: 4, blockShape: 4, allowDropAnywhere: true,},
           '---',
           {blockType: BlockType.LABEL, text: 'Bridging'},
           "---",
@@ -384,6 +388,7 @@ if (isScratchBlocksReady) initBlockTools();
     no_op_7() {}
     onError() {}
     onMainError() {}
+    extlist() {return Cast.toString(extlist);}
 
     lastError     = (args) => { switch(args?.TYPE){ case 'line':     return luaError.last.line; case 'codeline': return luaError.last.linemsg; } return luaError.last.msg; };
     
@@ -427,9 +432,6 @@ if (isScratchBlocksReady) initBlockTools();
       const name = Cast.toString(args.VAR);
       let val = args.VAL;
       // Coerce types when possible:
-      // - Exact strings 'true' and 'false' (case-sensitive) will become booleans
-      //   (use exactly 'true' or 'false' to convert to boolean)
-      // - Numeric-looking strings will become numbers
       if (typeof val === 'string') {
         if (val === 'true') val = true;
         else if (val === 'false') val = false;
@@ -582,7 +584,7 @@ getsbfuncArgs(args, { thread }) {
 
         // Control
         // @ts-ignore
-        control_wait: (_, seconds) => new Promise((resolve) => setTimeout(resolve, Cast.toNumber(seconds) * 1000)),
+        control_wait: async (_, seconds) => {await new Promise(res => setTimeout(res, seconds * 1000));},
         control_clone: (util) => runtime.ext_scratch3_control.createClone(util),
         control_deleteClone: (util) => util.target.removeClone(),
 
@@ -699,6 +701,7 @@ getsbfuncArgs(args, { thread }) {
           // @ts-ignore I know it "could" be undefined but it wont be
           this.Functions[fn || fnn](util, ...args);
       const bindHere = (fn) => fn.bind(this);
+
 
       // Setting  sbfunc
       lua.global.set('sbfunc', async (...args) => {
@@ -889,38 +892,41 @@ getsbfuncArgs(args, { thread }) {
 
       lua.global.set('math', luaMath);
 
-      lua.doString(`
-      function Switch(val)
-        local S={_val=val,_cases={},_def=nil}
-        function S:case(match,fn,fall)
-          table.insert(self._cases,{match=match,fn=fn,fall=not not fall})
-          return self
+lua.doString(`
+  function Switch(val)
+    local S={_val=val,_cases={},_def=nil}
+    function S:case(match,fn,fall)
+      table.insert(self._cases,{match=match,fn=fn,fall=not not fall})
+      return self
+    end
+    function S:default(fn)self._def=fn;return self end
+    function S:run()
+      local v=self._val
+      for _,c in ipairs(self._cases)do
+        local ok=false
+        if type(c.match)=="function"then
+          ok=c.match(v)
+        elseif type(c.match)=="table"then
+          for _,m in ipairs(c.match)do if m==v then ok=true break end end
+        else
+          ok=(c.match==v)
         end
-        function S:default(fn)self._def=fn;return self end
-        function S:run()
-          local v=self._val
-          for _,c in ipairs(self._cases)do
-            local ok=false
-            if type(c.match)=="function"then
-              ok=c.match(v)
-            elseif type(c.match)=="table"then
-              for _,m in ipairs(c.match)do if m==v then ok=true break end end
-            else
-              ok=(c.match==v)
-            end
-            if ok then
-              local res=c.fn(v)
-              if not c.fall then return res end
-            end
-          end
-          if self._def then return self._def(v)end
-          return nil
+        if ok then
+          local res=c.fn(v)
+          if not c.fall then return res end
         end
-        return S
       end
-    `);
+      if self._def then return self._def(v)end
+      return nil
+    end
+    return S
+  end
+`);
 
-      lua.global.set('os', {time:()=>Math.floor(Date.now()/1000),date:(f,t)=>{const d=new Date((t||Math.floor(Date.now()/1000))*1000);return f==='*t'?{year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),min:d.getMinutes(),sec:d.getSeconds(),wday:d.getDay()+1,yday:Math.floor((d-new Date(d.getFullYear(),0,0))/86400000),isdst:0}:d.toISOString()},difftime:(t1,t2)=>t1-t2,clock:(()=>{const s=performance.now();return()=> (performance.now()-s)/1000})()});
+// `Switch` is defined directly in Lua above; no JS-side `luaswitchcase` wrapper is necessary.
+
+
+      lua.global.set('os',{time:()=>Math.floor(Date.now()/1000),date:(f,t)=>{const d=new Date((t||Math.floor(Date.now()/1000))*1000);return f==='*t'?{year:d.getFullYear(),month:d.getMonth()+1,day:d.getDate(),hour:d.getHours(),min:d.getMinutes(),sec:d.getSeconds(),wday:d.getDay()+1,yday:Math.floor((d-new Date(d.getFullYear(),0,0))/86400000),isdst:0}:d.toISOString()},difftime:(t1,t2)=>(t1||0)-(t2||0),clock:(()=>{const s=performance.now();return()=> (performance.now()-s)/1000})()});
 
       // Custom category: Cast
       lua.global.set('Cast', Cast);
@@ -1061,7 +1067,7 @@ getsbfuncArgs(args, { thread }) {
       }
       let result;
       try {
-        result = await lua.doString(Cast.toString(CODE));
+      result = await lua.doString(Cast.toString(CODE), { async: true });
       } catch (err) {
         const msg   = err instanceof Error ? err.message : Cast.toString(err);
         const match = msg.match(/\[string.*?\]:(\d+)/);
@@ -1101,7 +1107,7 @@ getsbfuncArgs(args, { thread }) {
       }
       let result;
       try {
-        result = await lua.doString(Cast.toString(CODE));
+        result = await lua.doString(Cast.toString(CODE), { async: true });
       } catch (err) {
         const msg   = err instanceof Error ? err.message : Cast.toString(err);
         const match = msg.match(/\[string.*?\]:(\d+)/);
@@ -1131,6 +1137,9 @@ getsbfuncArgs(args, { thread }) {
 
 
 }
+
+runtime.on('EXTENSION_ADDED', (newext) => (oldextlist = extlist, extlist = Object.keys(vm.extensionManager.getExtensionURLs()).concat(newext.id)));
+runtime.on('EXTENSION_REMOVED', () => (oldextlist = extlist, extlist = Object.keys(vm.extensionManager.getExtensionURLs())));
 
 runtime.on('PROJECT_START', () => {
   if (reloadOnStart) resetLua();
