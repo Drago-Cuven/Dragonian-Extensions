@@ -2,8 +2,9 @@
 (function(Scratch) {
     'use strict';
 
-    // Check if Node.js is available
     const hasNodeJS = typeof process !== 'undefined' && process.versions && process.versions.node;
+    const isPackaged = !typeof scaffolding === "undefined";
+    let safeguardAlerts = !isPackaged;
     
     let fs, path, os;
     if (hasNodeJS) {
@@ -14,7 +15,6 @@
 
     class NodeFilesExtension {
         constructor() {
-            // Only set up focus directory if Node.js is available
             if (hasNodeJS) {
                 this.focusDirectory = path.dirname(process.execPath);
                 process.chdir(this.focusDirectory);
@@ -31,7 +31,11 @@
                 color2: '#deaa30ff',
                 color3: '#3f863f',
                 blocks: [
-                    // NodeJS
+                    ...(hasNodeJS ? [{
+                        opcode: 'safeguarding',
+                        blockType: Scratch.BlockType.BUTTON,
+                        text: safeguardAlerts ? 'Disable Alerts' : 'Enable Alerts'
+                    }] : []),
                     {
                         opcode: 'isNodeJS',
                         blockType: Scratch.BlockType.BOOLEAN,
@@ -49,8 +53,6 @@
                         text: 'current user',
                         allowDropAnywhere: true
                     },
-
-                    // Directory
                     {
                         blockType: Scratch.BlockType.LABEL,
                         text: 'Directory'
@@ -268,8 +270,6 @@
                             foldername: { type: Scratch.ArgumentType.STRING, defaultValue: 'NewFolder' }
                         }
                     },
-
-                    // Computer info
                     {
                         blockType: Scratch.BlockType.LABEL,
                         text: 'Computer info'
@@ -352,8 +352,6 @@
                         text: 'system uptime (seconds)',
                         allowDropAnywhere: true
                     },
-
-                    // Environment
                     {
                         blockType: Scratch.BlockType.LABEL,
                         text: 'Environment'
@@ -420,7 +418,19 @@
             };
         }
 
-        // Helper functions - only work if Node.js is available
+        safeguarding() {
+            if (!hasNodeJS) return '';
+            safeguardAlerts = !safeguardAlerts;
+            this.reloadBlocks();
+            return '';
+        }
+
+        reloadBlocks() {
+            if (Scratch.vm && Scratch.vm.extensionManager) {
+                Scratch.vm.extensionManager.refreshBlocks();
+            }
+        }
+
         _resolveFilePath(filename) {
             if (!hasNodeJS) return '';
             const fixedPath = filename.replace(/\\/g, '/');
@@ -442,21 +452,124 @@
             return bytes / size;
         }
 
-        // Helper function to copy folders recursively
+        _isSensitiveReadPath(filePath) {
+            if (!hasNodeJS) return false;
+            
+            const lowerPath = filePath.toLowerCase();
+            const platform = os.platform();
+            const homedir = os.homedir().toLowerCase();
+            
+            const sensitiveDirs = [];
+            
+            if (platform === 'win32') {
+                sensitiveDirs.push(
+                    path.join(homedir, 'downloads'),
+                    path.join(homedir, 'appdata'),
+                    path.join(homedir, 'application data'),
+                    'c:\\windows', 'c:\\system32', 'c:\\program files', 'c:\\programdata',
+                    'c:\\', 'd:\\', 'e:\\', 'f:\\', 'g:\\', 'h:\\', 'i:\\', 'j:\\',
+                    'k:\\', 'l:\\', 'm:\\', 'n:\\', 'o:\\', 'p:\\', 'q:\\', 'r:\\',
+                    's:\\', 't:\\', 'u:\\', 'v:\\', 'w:\\', 'x:\\', 'y:\\', 'z:\\'
+                );
+            } else if (platform === 'darwin') {
+                sensitiveDirs.push(
+                    path.join(homedir, 'downloads'),
+                    path.join(homedir, 'library', 'application support'),
+                    path.join(homedir, 'library', 'caches'),
+                    '/applications',
+                    '/system',
+                    '/library',
+                    '/private',
+                    '/bin',
+                    '/sbin',
+                    '/usr',
+                    '/etc',
+                    '/var',
+                    '/'
+                );
+            } else {
+                sensitiveDirs.push(
+                    path.join(homedir, 'downloads'),
+                    path.join(homedir, '.config'),
+                    path.join(homedir, '.cache'),
+                    path.join(homedir, '.local', 'share'),
+                    '/etc',
+                    '/bin',
+                    '/sbin',
+                    '/usr',
+                    '/var',
+                    '/lib',
+                    '/sys',
+                    '/proc',
+                    '/root',
+                    '/'
+                );
+            }
+
+            return sensitiveDirs.some(sensitiveDir => 
+                lowerPath.includes(sensitiveDir.toLowerCase())
+            );
+        }
+
+        _checkSafeguard(operation, details) {
+            if (!hasNodeJS) return true;
+            if (!safeguardAlerts) return true;
+
+            let message = '';
+            
+            if (operation === 'env') {
+                message = `DANGER! ARE YOU ABSOLUTELY SURE YOU WANT TO MODIFY ENVIRONMENT VARIABLES?\n\n`;
+                message += `This action may BREAK THE COMPUTER and cause applications to stop working.\n\n`;
+                if (details.name && details.value) {
+                    message += `You are setting: ${details.name} = ${details.value}`;
+                } else if (details.name) {
+                    message += `You are deleting: ${details.name}`;
+                }
+            } else {
+                message = `Are you sure you want to ${operation}?\n`;
+                
+                switch (operation) {
+                    case 'move':
+                        message += `Source: ${details.source}\nDestination: ${details.dest}`;
+                        break;
+                    case 'copy':
+                        message += `Source: ${details.source}\nDestination: ${details.dest}`;
+                        break;
+                    case 'create':
+                        if (details.foldername) {
+                            message += `Folder: ${details.foldername}`;
+                        } else {
+                            message += `File: ${details.filename}`;
+                        }
+                        break;
+                    case 'delete':
+                        if (details.foldername) {
+                            message += `Folder: ${details.foldername}`;
+                        } else {
+                            message += `File: ${details.filename}`;
+                        }
+                        break;
+                    case 'read':
+                        message += `File: ${details.filename}\nLocation: ${details.path}`;
+                        break;
+                }
+            }
+
+            message += '\n\nClick OK to continue, or Cancel to deny.';
+            return confirm(message);
+        }
+
         _copyFolderRecursive(source, dest) {
             if (!hasNodeJS) return;
             
-            // Check if source exists and is a directory
             if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
                 return;
             }
 
-            // Create destination directory
             if (!fs.existsSync(dest)) {
                 fs.mkdirSync(dest, { recursive: true });
             }
 
-            // Read all items in source directory
             const items = fs.readdirSync(source);
 
             for (const item of items) {
@@ -464,16 +577,13 @@
                 const destPath = path.join(dest, item);
 
                 if (fs.statSync(sourcePath).isDirectory()) {
-                    // Recursively copy subdirectories
                     this._copyFolderRecursive(sourcePath, destPath);
                 } else {
-                    // Copy files
                     fs.copyFileSync(sourcePath, destPath);
                 }
             }
         }
 
-        // Helper function to handle contentType filtering with custom extension support
         _filterByContentType(type, ext) {
             const contentTypeMap = {
                 'files': [],
@@ -486,21 +596,17 @@
                 'code files': ['.js', '.lua', '.hx', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.php', '.html', '.css', '.ts', '.rs', '.go', '.rb', '.pl', '.sh', '.bat', '.ps1', '.md']
             };
 
-            // If the type is a known content type, use its extensions
             if (contentTypeMap.hasOwnProperty(type.toLowerCase())) {
                 return contentTypeMap[type.toLowerCase()];
             }
             
-            // If the type starts with ".", treat it as a custom extension
             if (type.startsWith('.')) {
                 return [type.toLowerCase()];
             }
             
-            // Default to all files
             return contentTypeMap['files'];
         }
 
-        // Storage devices functions
         getStorageDevicesArray() {
             if (!hasNodeJS) return [];
             try {
@@ -551,7 +657,6 @@
             }
         }
 
-        // Directory bookmark function
         directoryBookmark({ type }) {
             if (!hasNodeJS) return '';
             try {
@@ -605,28 +710,30 @@
             }
         }
 
-        // Fixed readFile function with proper dataurl and base64 handling
         readFile({ filename, format }) {
             if (!hasNodeJS) return '';
+            
+            const filePath = this._resolveFilePath(filename);
+            if (this._isSensitiveReadPath(filePath) && safeguardAlerts) {
+                const allowed = this._checkSafeguard('read', {
+                    filename: filename,
+                    path: filePath
+                });
+                if (!allowed) return '';
+            }
+
             try {
-                const filePath = this._resolveFilePath(filename);
                 if (!fs.existsSync(filePath)) return '';
 
                 switch (format) {
                     case 'text':
                         return fs.readFileSync(filePath, 'utf8');
-                    
                     case 'base64':
-                        // Read file as binary and convert to base64
                         const fileBuffer = fs.readFileSync(filePath);
                         return fileBuffer.toString('base64');
-                    
                     case 'dataurl':
-                        // Read file as binary and convert to base64 data URL
                         const buffer = fs.readFileSync(filePath);
                         const base64Data = buffer.toString('base64');
-                        
-                        // Try to detect MIME type, fallback to application/octet-stream
                         let mimeType = 'application/octet-stream';
                         const ext = path.extname(filePath).toLowerCase();
                         const mimeMap = {
@@ -645,13 +752,10 @@
                             '.mp4': 'video/mp4',
                             '.pdf': 'application/pdf'
                         };
-                        
                         if (mimeMap[ext]) {
                             mimeType = mimeMap[ext];
                         }
-                        
                         return `data:${mimeType};base64,${base64Data}`;
-                    
                     default:
                         return fs.readFileSync(filePath, 'utf8');
                 }
@@ -660,14 +764,11 @@
             }
         }
 
-        // New function to remove extension from filename
         fileNameWithoutExtension({ filename }) {
             try {
-                // Use path.parse to safely handle the filename and remove extension
                 const parsed = path.parse(filename.toString());
                 return parsed.name;
             } catch (error) {
-                // Fallback: remove everything after the last dot
                 const str = filename.toString();
                 const lastDotIndex = str.lastIndexOf('.');
                 if (lastDotIndex === -1) return str;
@@ -675,9 +776,105 @@
             }
         }
 
-        // New rename file function
+        setEnv({ name, value }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('env', { name: name, value: value });
+            if (!allowed) return '';
+            try {
+                process.env[name] = value;
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        deleteEnv({ name }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('env', { name: name });
+            if (!allowed) return '';
+            try {
+                delete process.env[name];
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        writeFile({ content, filename }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('create', { filename: filename });
+            if (!allowed) return '';
+            try {
+                const filePath = this._resolveFilePath(filename);
+                fs.writeFileSync(filePath, content);
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        appendFile({ content, filename }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('create', { filename: filename });
+            if (!allowed) return '';
+            try {
+                const filePath = this._resolveFilePath(filename);
+                fs.appendFileSync(filePath, content);
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        createFolder({ foldername }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('create', { foldername: foldername });
+            if (!allowed) return '';
+            try {
+                const folderPath = this._resolveFilePath(foldername);
+                if (!fs.existsSync(folderPath)) {
+                    fs.mkdirSync(folderPath, { recursive: true });
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        deleteFile({ filename }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('delete', { filename: filename });
+            if (!allowed) return '';
+            try {
+                const filePath = this._resolveFilePath(filename);
+                if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        deleteFolder({ foldername }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('delete', { foldername: foldername });
+            if (!allowed) return '';
+            try {
+                const folderPath = this._resolveFilePath(foldername);
+                if (fs.existsSync(folderPath)) {
+                    fs.rmSync(folderPath, { recursive: true, force: true });
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
         renameFile({ oldname, newname }) {
             if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('move', { source: oldname, dest: newname });
+            if (!allowed) return '';
             try {
                 const oldPath = this._resolveFilePath(oldname);
                 const newPath = this._resolveFilePath(newname);
@@ -690,9 +887,10 @@
             }
         }
 
-        // New rename folder function
         renameFolder({ oldname, newname }) {
             if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('move', { source: oldname, dest: newname });
+            if (!allowed) return '';
             try {
                 const oldPath = this._resolveFilePath(oldname);
                 const newPath = this._resolveFilePath(newname);
@@ -705,9 +903,24 @@
             }
         }
 
-        // New copy folder function
+        copyFile({ source, dest }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('copy', { source: source, dest: dest });
+            if (!allowed) return '';
+            try {
+                const sourcePath = this._resolveFilePath(source);
+                const destPath = this._resolveFilePath(dest);
+                fs.copyFileSync(sourcePath, destPath);
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
         copyFolder({ source, dest }) {
             if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('copy', { source: source, dest: dest });
+            if (!allowed) return '';
             try {
                 const sourcePath = this._resolveFilePath(source);
                 const destPath = this._resolveFilePath(dest);
@@ -718,9 +931,26 @@
             }
         }
 
-        // New move folder function
+        moveFile({ source, dest }) {
+            if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('move', { source: source, dest: dest });
+            if (!allowed) return '';
+            try {
+                const sourcePath = this._resolveFilePath(source);
+                const destPath = this._resolveFilePath(dest);
+                if (fs.existsSync(sourcePath)) {
+                    fs.renameSync(sourcePath, destPath);
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
         moveFolder({ source, dest }) {
             if (!hasNodeJS) return '';
+            const allowed = this._checkSafeguard('move', { source: source, dest: dest });
+            if (!allowed) return '';
             try {
                 const sourcePath = this._resolveFilePath(source);
                 const destPath = this._resolveFilePath(dest);
@@ -733,7 +963,6 @@
             }
         }
 
-        // NodeJS blocks
         isNodeJS() { return hasNodeJS != null; }
         
         nodeVersion() { 
@@ -749,7 +978,6 @@
             }
         }
 
-        // Directory blocks
         setFocusDirectory({ directory }) {
             if (!hasNodeJS) return '';
             try {
@@ -778,93 +1006,6 @@
             }
         }
 
-        writeFile({ content, filename }) {
-            if (!hasNodeJS) return '';
-            try {
-                const filePath = this._resolveFilePath(filename);
-                fs.writeFileSync(filePath, content);
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        appendFile({ content, filename }) {
-            if (!hasNodeJS) return '';
-            try {
-                const filePath = this._resolveFilePath(filename);
-                fs.appendFileSync(filePath, content);
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        createFolder({ foldername }) {
-            if (!hasNodeJS) return '';
-            try {
-                const folderPath = this._resolveFilePath(foldername);
-                if (!fs.existsSync(folderPath)) {
-                    fs.mkdirSync(folderPath, { recursive: true });
-                }
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        deleteFile({ filename }) {
-            if (!hasNodeJS) return '';
-            try {
-                const filePath = this._resolveFilePath(filename);
-                if (fs.existsSync(filePath)) {
-                    fs.unlinkSync(filePath);
-                }
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        deleteFolder({ foldername }) {
-            if (!hasNodeJS) return '';
-            try {
-                const folderPath = this._resolveFilePath(foldername);
-                if (fs.existsSync(folderPath)) {
-                    fs.rmSync(folderPath, { recursive: true, force: true });
-                }
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        copyFile({ source, dest }) {
-            if (!hasNodeJS) return '';
-            try {
-                const sourcePath = this._resolveFilePath(source);
-                const destPath = this._resolveFilePath(dest);
-                fs.copyFileSync(sourcePath, destPath);
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        moveFile({ source, dest }) {
-            if (!hasNodeJS) return '';
-            try {
-                const sourcePath = this._resolveFilePath(source);
-                const destPath = this._resolveFilePath(dest);
-                if (fs.existsSync(sourcePath)) {
-                    fs.renameSync(sourcePath, destPath);
-                }
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
         allInDirectory({ type, directory, extension }) {
             if (!hasNodeJS) return '[]';
             try {
@@ -873,19 +1014,13 @@
                 
                 const items = fs.readdirSync(dir);
                 const showExtension = extension === 'with extension';
-                
                 const allowedExtensions = this._filterByContentType(type, '');
                 
                 let filteredItems = items.filter(item => {
                     const fullPath = path.join(dir, item);
                     if (!fs.statSync(fullPath).isFile()) return false;
-                    
                     const ext = path.extname(item).toLowerCase();
-                    
-                    // If allowedExtensions is empty (files), return all files
                     if (allowedExtensions.length === 0) return true;
-                    
-                    // Otherwise check if extension is in allowed list
                     return allowedExtensions.includes(ext);
                 });
                 
@@ -904,13 +1039,11 @@
             try {
                 const dir = path.resolve(directory);
                 if (!fs.existsSync(dir)) return '[]';
-                
                 const items = fs.readdirSync(dir);
                 const folders = items.filter(item => {
                     const fullPath = path.join(dir, item);
                     return fs.statSync(fullPath).isDirectory();
                 });
-                
                 return JSON.stringify(folders);
             } catch (error) {
                 return '[]';
@@ -951,12 +1084,10 @@
             }
         }
 
-        // Storage devices reporter
         storageDevices() {
             return JSON.stringify(this.getStorageDevicesArray());
         }
 
-        // Storage stuff
         totalStorage({ device, format }) {
             if (!hasNodeJS) return 0;
             try {
@@ -979,7 +1110,6 @@
             }
         }
 
-        // System info
         getOsType() {
             return hasNodeJS ? os.type() : '';
         }
@@ -1004,31 +1134,10 @@
             return hasNodeJS ? os.uptime() : 0;
         }
 
-        // Environment stuff
         getEnv({ name }) {
             if (!hasNodeJS) return '';
             try {
                 return process.env[name] || '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        setEnv({ name, value }) {
-            if (!hasNodeJS) return '';
-            try {
-                process.env[name] = value;
-                return '';
-            } catch (error) {
-                return '';
-            }
-        }
-
-        deleteEnv({ name }) {
-            if (!hasNodeJS) return '';
-            try {
-                delete process.env[name];
-                return '';
             } catch (error) {
                 return '';
             }
