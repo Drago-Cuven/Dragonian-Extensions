@@ -85,10 +85,24 @@
                     {
                         opcode: 'readFile',
                         blockType: Scratch.BlockType.REPORTER,
-                        text: 'read file [filename]',
+                        text: 'read file [filename] as [format]',
                         allowDropAnywhere: true,
                         arguments: {
-                            filename: { type: Scratch.ArgumentType.STRING, defaultValue: 'test.txt' }
+                            filename: { type: Scratch.ArgumentType.STRING, defaultValue: 'test.txt' },
+                            format: {
+                                type: Scratch.ArgumentType.STRING,
+                                menu: 'readableFormats',
+                                defaultValue: 'text'
+                            }
+                        }
+                    },
+                    {
+                        opcode: 'fileNameWithoutExtension',
+                        blockType: Scratch.BlockType.REPORTER,
+                        text: '[filename] without extension',
+                        allowDropAnywhere: true,
+                        arguments: {
+                            filename: { type: Scratch.ArgumentType.STRING, defaultValue: 'mysong.mp3' }
                         }
                     },
                     {
@@ -143,6 +157,24 @@
                         }
                     },
                     {
+                        opcode: 'renameFile',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: 'rename file [oldname] to [newname]',
+                        arguments: {
+                            oldname: { type: Scratch.ArgumentType.STRING, defaultValue: 'test.txt' },
+                            newname: { type: Scratch.ArgumentType.STRING, defaultValue: 'renamed.txt' }
+                        }
+                    },
+                    {
+                        opcode: 'renameFolder',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: 'rename folder [oldname] to [newname]',
+                        arguments: {
+                            oldname: { type: Scratch.ArgumentType.STRING, defaultValue: 'OldFolder' },
+                            newname: { type: Scratch.ArgumentType.STRING, defaultValue: 'NewFolder' }
+                        }
+                    },
+                    {
                         opcode: 'copyFile',
                         blockType: Scratch.BlockType.COMMAND,
                         text: 'copy file [source] to [dest]',
@@ -152,12 +184,30 @@
                         }
                     },
                     {
+                        opcode: 'copyFolder',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: 'copy folder [source] to [dest]',
+                        arguments: {
+                            source: { type: Scratch.ArgumentType.STRING, defaultValue: 'SourceFolder' },
+                            dest: { type: Scratch.ArgumentType.STRING, defaultValue: 'DestFolder' }
+                        }
+                    },
+                    {
                         opcode: 'moveFile',
                         blockType: Scratch.BlockType.COMMAND,
                         text: 'move file [source] to [dest]',
                         arguments: {
                             source: { type: Scratch.ArgumentType.STRING, defaultValue: 'test.txt' },
                             dest: { type: Scratch.ArgumentType.STRING, defaultValue: 'moved.txt' }
+                        }
+                    },
+                    {
+                        opcode: 'moveFolder',
+                        blockType: Scratch.BlockType.COMMAND,
+                        text: 'move folder [source] to [dest]',
+                        arguments: {
+                            source: { type: Scratch.ArgumentType.STRING, defaultValue: 'SourceFolder' },
+                            dest: { type: Scratch.ArgumentType.STRING, defaultValue: 'DestFolder' }
                         }
                     },
                     {
@@ -344,7 +394,7 @@
                 menus: {
                     contentType: {
                         acceptReporters: true,
-                        items: ['files', 'media', 'images', 'videos', 'context files', 'code files']
+                        items: ['files', 'media', 'audio', 'midi', 'images', 'videos', 'context files', 'code files']
                     },
                     extensionType: {
                         acceptReporters: true,
@@ -361,6 +411,10 @@
                     directoryBookmarks: {
                         acceptReporters: true,
                         items: ['current executable', 'root', 'user', 'appdata', 'localdata', 'download', 'documents']
+                    },
+                    readableFormats: {
+                        acceptReporters: true,
+                        items: ['text', 'dataurl', 'base64']
                     }
                 }
             };
@@ -386,6 +440,64 @@
             };
             const size = sizes[format.toUpperCase()] || sizes['B'];
             return bytes / size;
+        }
+
+        // Helper function to copy folders recursively
+        _copyFolderRecursive(source, dest) {
+            if (!hasNodeJS) return;
+            
+            // Check if source exists and is a directory
+            if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
+                return;
+            }
+
+            // Create destination directory
+            if (!fs.existsSync(dest)) {
+                fs.mkdirSync(dest, { recursive: true });
+            }
+
+            // Read all items in source directory
+            const items = fs.readdirSync(source);
+
+            for (const item of items) {
+                const sourcePath = path.join(source, item);
+                const destPath = path.join(dest, item);
+
+                if (fs.statSync(sourcePath).isDirectory()) {
+                    // Recursively copy subdirectories
+                    this._copyFolderRecursive(sourcePath, destPath);
+                } else {
+                    // Copy files
+                    fs.copyFileSync(sourcePath, destPath);
+                }
+            }
+        }
+
+        // Helper function to handle contentType filtering with custom extension support
+        _filterByContentType(type, ext) {
+            const contentTypeMap = {
+                'files': [],
+                'media': ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'],
+                'audio': ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.m4a', '.wma', '.aiff', '.au'],
+                'midi': ['.mid', '.midi'],
+                'images': ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'],
+                'videos': ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'],
+                'context files': ['.json', '.xml', '.txt', '.csv', '.ini', '.cfg', '.conf', '.yaml', '.yml', '.properties'],
+                'code files': ['.js', '.lua', '.hx', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.php', '.html', '.css', '.ts', '.rs', '.go', '.rb', '.pl', '.sh', '.bat', '.ps1', '.md']
+            };
+
+            // If the type is a known content type, use its extensions
+            if (contentTypeMap.hasOwnProperty(type.toLowerCase())) {
+                return contentTypeMap[type.toLowerCase()];
+            }
+            
+            // If the type starts with ".", treat it as a custom extension
+            if (type.startsWith('.')) {
+                return [type.toLowerCase()];
+            }
+            
+            // Default to all files
+            return contentTypeMap['files'];
         }
 
         // Storage devices functions
@@ -493,6 +605,134 @@
             }
         }
 
+        // Fixed readFile function with proper dataurl and base64 handling
+        readFile({ filename, format }) {
+            if (!hasNodeJS) return '';
+            try {
+                const filePath = this._resolveFilePath(filename);
+                if (!fs.existsSync(filePath)) return '';
+
+                switch (format) {
+                    case 'text':
+                        return fs.readFileSync(filePath, 'utf8');
+                    
+                    case 'base64':
+                        // Read file as binary and convert to base64
+                        const fileBuffer = fs.readFileSync(filePath);
+                        return fileBuffer.toString('base64');
+                    
+                    case 'dataurl':
+                        // Read file as binary and convert to base64 data URL
+                        const buffer = fs.readFileSync(filePath);
+                        const base64Data = buffer.toString('base64');
+                        
+                        // Try to detect MIME type, fallback to application/octet-stream
+                        let mimeType = 'application/octet-stream';
+                        const ext = path.extname(filePath).toLowerCase();
+                        const mimeMap = {
+                            '.txt': 'text/plain',
+                            '.html': 'text/html',
+                            '.css': 'text/css',
+                            '.js': 'application/javascript',
+                            '.json': 'application/json',
+                            '.png': 'image/png',
+                            '.jpg': 'image/jpeg',
+                            '.jpeg': 'image/jpeg',
+                            '.gif': 'image/gif',
+                            '.svg': 'image/svg+xml',
+                            '.mp3': 'audio/mpeg',
+                            '.wav': 'audio/wav',
+                            '.mp4': 'video/mp4',
+                            '.pdf': 'application/pdf'
+                        };
+                        
+                        if (mimeMap[ext]) {
+                            mimeType = mimeMap[ext];
+                        }
+                        
+                        return `data:${mimeType};base64,${base64Data}`;
+                    
+                    default:
+                        return fs.readFileSync(filePath, 'utf8');
+                }
+            } catch (error) {
+                return '';
+            }
+        }
+
+        // New function to remove extension from filename
+        fileNameWithoutExtension({ filename }) {
+            try {
+                // Use path.parse to safely handle the filename and remove extension
+                const parsed = path.parse(filename.toString());
+                return parsed.name;
+            } catch (error) {
+                // Fallback: remove everything after the last dot
+                const str = filename.toString();
+                const lastDotIndex = str.lastIndexOf('.');
+                if (lastDotIndex === -1) return str;
+                return str.substring(0, lastDotIndex);
+            }
+        }
+
+        // New rename file function
+        renameFile({ oldname, newname }) {
+            if (!hasNodeJS) return '';
+            try {
+                const oldPath = this._resolveFilePath(oldname);
+                const newPath = this._resolveFilePath(newname);
+                if (fs.existsSync(oldPath) && fs.statSync(oldPath).isFile()) {
+                    fs.renameSync(oldPath, newPath);
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        // New rename folder function
+        renameFolder({ oldname, newname }) {
+            if (!hasNodeJS) return '';
+            try {
+                const oldPath = this._resolveFilePath(oldname);
+                const newPath = this._resolveFilePath(newname);
+                if (fs.existsSync(oldPath) && fs.statSync(oldPath).isDirectory()) {
+                    fs.renameSync(oldPath, newPath);
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        // New copy folder function
+        copyFolder({ source, dest }) {
+            if (!hasNodeJS) return '';
+            try {
+                const sourcePath = this._resolveFilePath(source);
+                const destPath = this._resolveFilePath(dest);
+                this._copyFolderRecursive(sourcePath, destPath);
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
+        // New move folder function
+        moveFolder({ source, dest }) {
+            if (!hasNodeJS) return '';
+            try {
+                const sourcePath = this._resolveFilePath(source);
+                const destPath = this._resolveFilePath(dest);
+                if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+                    fs.renameSync(sourcePath, destPath);
+                }
+                return '';
+            } catch (error) {
+                return '';
+            }
+        }
+
         // NodeJS blocks
         isNodeJS() { return hasNodeJS != null; }
         
@@ -526,16 +766,6 @@
 
         getFocusDirectory() { 
             return hasNodeJS ? this.focusDirectory : '';
-        }
-
-        readFile({ filename }) {
-            if (!hasNodeJS) return '';
-            try {
-                const filePath = this._resolveFilePath(filename);
-                return fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '';
-            } catch (error) {
-                return '';
-            }
         }
 
         endFolderOfDirectory({ directory }) {
@@ -644,21 +874,19 @@
                 const items = fs.readdirSync(dir);
                 const showExtension = extension === 'with extension';
                 
+                const allowedExtensions = this._filterByContentType(type, '');
+                
                 let filteredItems = items.filter(item => {
                     const fullPath = path.join(dir, item);
                     if (!fs.statSync(fullPath).isFile()) return false;
                     
                     const ext = path.extname(item).toLowerCase();
                     
-                    switch (type.toLowerCase()) {
-                        case 'files': return true;
-                        case 'media': return ['.mp3', '.wav', '.ogg', '.aac', '.flac', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm'].includes(ext);
-                        case 'images': return ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg'].includes(ext);
-                        case 'videos': return ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv'].includes(ext);
-                        case 'context files': return ['.json', '.xml', '.txt', '.csv', '.ini', '.cfg', '.conf', '.yaml', '.yml', '.properties'].includes(ext);
-                        case 'code files': return ['.js', '.lua', '.hx', '.py', '.java', '.c', '.cpp', '.h', '.cs', '.php', '.html', '.css', '.ts', '.rs', '.go', '.rb', '.pl', '.sh', '.bat', '.ps1', '.md'].includes(ext);
-                        default: return ext === `.${type.toLowerCase()}`;
-                    }
+                    // If allowedExtensions is empty (files), return all files
+                    if (allowedExtensions.length === 0) return true;
+                    
+                    // Otherwise check if extension is in allowed list
+                    return allowedExtensions.includes(ext);
                 });
                 
                 if (!showExtension) {
