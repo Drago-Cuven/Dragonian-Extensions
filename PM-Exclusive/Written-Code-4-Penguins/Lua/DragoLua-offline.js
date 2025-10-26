@@ -558,9 +558,9 @@ getsbfuncArgs(args, { thread }) {
         motion_ifOnEdgeBounce: (util) => runtime.ext_scratch3_motion._ifOnEdgeBounce.call(runtime.ext_scratch3_motion, util.target),
 
         // Looks
-        looks_say: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
+        looks_say: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg ?? ""), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._say.call(runtime.ext_scratch3_looks, Cast.toString(msg ?? ""), util.target),
         looks_sayForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.sayforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
-        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._think.call(runtime.ext_scratch3_looks, Cast.toString(msg), util.target),
+        looks_think: (util, msg, secs) => secs != null ? runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, { MESSAGE: Cast.toString(msg ?? ""), SECS: Cast.toNumber(secs) }, util) : runtime.ext_scratch3_looks._think.call(runtime.ext_scratch3_looks, Cast.toString(msg ?? ""), util.target),
         looks_thinkForSecs: (util, msg, secs) => runtime.ext_scratch3_looks.thinkforsecs.call(runtime.ext_scratch3_looks, {MESSAGE: msg, SECS: secs}, util),
         looks_show: (util) => runtime.ext_scratch3_looks.show.call(runtime.ext_scratch3_looks, null, util),
         looks_hide: (util) => runtime.ext_scratch3_looks.hide.call(runtime.ext_scratch3_looks, null, util),
@@ -702,6 +702,8 @@ getsbfuncArgs(args, { thread }) {
           this.Functions[fn || fnn](util, ...args);
       const bindHere = (fn) => fn.bind(this);
 
+
+      
 
         // Expose JS-side await to Lua
         lua.global.set("await", async (promise) => {
@@ -953,6 +955,29 @@ getsbfuncArgs(args, { thread }) {
           },
         },
       });
+
+      const luaSwitchCase = `
+      function Switch(value, cases, default)
+          if cases[value] ~= nil then
+              local action = cases[value]
+              if type(action) == "function" then
+                  return action()
+              else
+                  return action
+              end
+          elseif default ~= nil then
+              if type(default) == "function" then
+                  return default()
+              else
+                  return default
+              end
+          end
+      end
+      `;
+
+      lua.doString(luaSwitchCase);
+
+
       // Custom functions
       lua.global.set('scratch', {
         fetch(url, opts, ...args) {

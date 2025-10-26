@@ -5,10 +5,11 @@ scratch.preserveUtil()
 -- Example looks script
 
 looks.show()
-looks.say('')
+looks.say("hello, world!")
+looks.say('Hello, world!', 2):await()
+looks.show()
 looks.hide()
 control.wait(1):await()
-looks.show()
 looks.think('Thinking...')
 
 --looks.setEffect(string:[...effects], number)
